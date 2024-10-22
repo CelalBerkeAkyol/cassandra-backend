@@ -82,11 +82,11 @@ const getAllPosts = async (req, res) => {
   }
 };
 const getOnePost = async (req, res) => {
-  const { id } = req.params;
-  const post = await Post.findById(id);
+  const { slug } = req.params;
+  const post = await Post.findOne({ slug: slug });
   return res.status(200).json({
     success: true,
-    data: post,
+    post: post,
   });
 };
 const detelePost = async (req, res) => {

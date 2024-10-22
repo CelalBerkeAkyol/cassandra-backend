@@ -2,7 +2,7 @@ const Post = require("../Models/PostSchema");
 
 const getPostsByCategoriesName = async (req, res) => {
   const categoryName = req.params.category;
-  console.log(categoryName);
+
   try {
     // Kategori adına göre postları veritabanından getirir
     const posts = await Post.find({ category: categoryName }).exec();

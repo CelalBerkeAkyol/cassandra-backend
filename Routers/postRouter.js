@@ -19,7 +19,7 @@ router.get("/", getAllPosts);
 // id si verilen bir post varsa getirilir
 // kategoriye göre post getirir
 
-router.get("/:id", checkPostId, getOnePost);
+router.get("/:slug", getOnePost);
 // post paylaşma
 router.post("/", getAccessToRoute, isAdmin, sanitizePostContent, newPost);
 router
