@@ -9,7 +9,10 @@ const {
   updatePost,
   detelePost,
 } = require("../controllers/postController");
-const { getAllCategory, gettAllStatus } = require("../Helpers/postHelpers");
+const {
+  getAllCategory,
+  gettAllStatus,
+} = require("../controllers/categoryController");
 const { checkPostId } = require("../middlewares/databaseMidleware");
 //Tüm postları getir
 router.get("/", getAllPosts);
@@ -23,6 +26,7 @@ router
   .route("/:id")
   .put(getAccessToRoute, isAdmin, checkPostId, sanitizePostContent, updatePost)
   .delete(getAccessToRoute, isAdmin, checkPostId, detelePost);
+
 // postların kategorilerini
 router.get("/post-categories", getAllCategory);
 // postların durumlarını

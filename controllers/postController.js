@@ -126,4 +126,10 @@ const updatePost = async (req, res) => {
   }
 };
 
-module.exports = { newPost, getAllPosts, detelePost, updatePost, getOnePost };
+module.exports = {
+  newPost,
+  getAllPosts,
+  detelePost,
+  updatePost,
+  getOnePost,
+};

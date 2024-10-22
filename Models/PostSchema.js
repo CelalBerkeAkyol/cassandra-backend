@@ -28,9 +28,9 @@ const postSchema = new mongoose.Schema(
       required: [true, "Lütfen kategori giriniz"], // Uyarı metni ekleme
       trim: true,
       enum: [
-        "Mikro Ekonomi",
-        "Makro Ekonomi",
-        "Kişisel Finans",
+        "mikro-ekonomi",
+        "makro-ekonomi",
+        "kişisel-finans",
         "Temel Analiz",
         "Teknik Analiz",
         "Kategori yok",
