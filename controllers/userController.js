@@ -65,14 +65,18 @@ const deleteAllUsersFromDatabase = async (req, res) => {
   }
 };
 const updateUserFromDatabase = async (req, res) => {
-  const username = req.params.username; // urlden kullanıcı idsi alındı
+  const username = req.params.username; // urlden kullanıcı name alındı
   const updatedData = req.body;
   try {
     // Kullanıcıyı bul ve güncelle
-    const updatedUser = await User.findByIdAndUpdate(username, updatedData, {
-      new: true, // Güncellenmiş kullanıcıyı geri döndürür
-      runValidators: true, // Schema validation'ları çalıştırır
-    });
+    const updatedUser = await User.findOneAndUpdate(
+      { userName: username },
+      updatedData,
+      {
+        new: true, // Güncellenmiş kullanıcıyı geri döndürür
+        runValidators: true, // Schema validation'ları çalıştırır
+      }
+    );
 
     if (!updatedUser) {
       return res.status(404).send("User not found"); // Kullanıcı bulunamazsa 404 döndür
@@ -80,7 +84,7 @@ const updateUserFromDatabase = async (req, res) => {
 
     res.json({
       success: true,
-      data: updatedUser,
+      data: updatedData,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
