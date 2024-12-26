@@ -2,16 +2,23 @@
 const mongosee = require("mongoose");
 const User = require("../Models/UserSchema");
 
-// veri tabanındaki tüm kullanıcıları json formatında döndürür
+// veri tabanındaki tüm yazarları json formatında döndürür
 const getAllUserFromDatabase = async (req, res) => {
   const bilgiler = await User.find({});
+  if (bilgiler.length === 0) {
+    return res.status(404).json({ message: "Hiç kullanıcı bulunamadı." });
+  }
   res.json(bilgiler);
 };
 
 // veri tabanından idsi verilen kullanıcıyı json formatında döndürür
-const getUserByIDFromDatabase = async (req, res) => {
-  const userID = req.params.id;
-  const bilgiler = await User.findOne({ _id: userID });
+const getUserByUserNameFromDatabase = async (req, res) => {
+  const username = req.params.username;
+  const bilgiler = await User.findOne({ userName: username });
+  if (!bilgiler) {
+    return res.status(404).json({ message: "Kullanıcı bulunamadı." });
+  }
+
   res.json({
     message: "Bireysel kullanıcı bilgileriniz",
     bilgiler,
@@ -20,8 +27,14 @@ const getUserByIDFromDatabase = async (req, res) => {
 
 //bir kullanıcıyı veri tabanından sil
 const deleteUserFromDatabase = async (req, res) => {
-  const { id } = req.params;
-  await User.deleteOne({ _id: id });
+  const username = req.params.username;
+  const result = await User.deleteOne({ userName: username });
+  if (!username) {
+    return res.status(400).json({ message: "Username is required" });
+  }
+  if (result.deletedCount === 0) {
+    return res.status(404).json({ message: "Kullanıcı bulunamadı." });
+  }
   res.status(201).send("User has been deleted successfully");
 };
 
@@ -46,11 +59,11 @@ const deleteAllUsersFromDatabase = async (req, res) => {
   }
 };
 const updateUserFromDatabase = async (req, res) => {
-  const user_id = req.params.id; // urlden kullanıcı idsi alındı
+  const username = req.params.username; // urlden kullanıcı idsi alındı
   const updatedData = req.body;
   try {
     // Kullanıcıyı bul ve güncelle
-    const updatedUser = await User.findByIdAndUpdate(user_id, updatedData, {
+    const updatedUser = await User.findByIdAndUpdate(username, updatedData, {
       new: true, // Güncellenmiş kullanıcıyı geri döndürür
       runValidators: true, // Schema validation'ları çalıştırır
     });
@@ -72,5 +85,5 @@ module.exports = {
   deleteAllUsersFromDatabase,
   deleteUserFromDatabase,
   updateUserFromDatabase,
-  getUserByIDFromDatabase,
+  getUserByUserNameFromDatabase,
 };

@@ -16,7 +16,7 @@ const getAccessToRoute = (req, res, next) => {
   }
   try {
     // kullanıcı verileri decoded içerisinde saklanıyor.
-    const decoded = jwt.verify(access_token, process.env.JWT_SECRET_KEY); // Bu da .env dosyasından alınmalı
+    const decoded = jwt.verify(access_token, process.env.JWT_SECRET); // Bu da .env dosyasından alınmalı
     req.user = decoded;
     return next(); // herhangi bir response yok diğer isteğe geçiyor
   } catch (err) {

@@ -4,7 +4,7 @@ const {
   getAllUserFromDatabase,
   deleteAllUsersFromDatabase,
   updateUserFromDatabase,
-  getUserByIDFromDatabase,
+  getUserByUserNameFromDatabase,
   deleteUserFromDatabase,
 } = require("../controllers/userController.js");
 const {
@@ -12,28 +12,14 @@ const {
   isAdmin,
 } = require("../middlewares/authMiddleware.js"); // kullanıcı kontrolü burada yapılıyor
 
-// ---> / ile belirtilen route {{url}}/api/user
-
-// tüm userları çekme
-// TO-DO burayı adminlere açık tut veya bunu tamamen sil güvenlik problemi yaratır
-router.get("/", getAllUserFromDatabase);
-
-// bir kişiyi çekme
-// TO-DO burayı adminlere açık tut veya bunu tamamen sil güvenlik problemi yaratır
-router.get("/:id", getUserByIDFromDatabase);
-
-// bir kullanıcı güncelleme
-router.put("/:id", getAccessToRoute, isAdmin, updateUserFromDatabase);
-
-// bir kişi silenecek
-router.delete("/:id", getAccessToRoute, isAdmin, deleteUserFromDatabase);
-
-// tüm kulllanıcıları silme
-router.post(
-  "/delete-all-users",
-  getAccessToRoute,
-  isAdmin,
-  deleteAllUsersFromDatabase
-);
+// Ortak yol prefix'i kullanılarak rotalar birleştirildi
+router.use(getAccessToRoute); // Tüm rotalarda erişim kontrolü
+router.get("/:username", isAdmin, getUserByUserNameFromDatabase); // Belirli kullanıcıyı getirme (sadece admin)
+router.delete("/:username", isAdmin, deleteUserFromDatabase); // Belirli kullanıcıyı silme (sadece admin)
+router
+  .route("/")
+  .get(getAllUserFromDatabase) // Tüm kullanıcıları listeleme (sadece admin)
+  .post(deleteAllUsersFromDatabase); // Tüm kullanıcıları silme (sadece admin)
+router.route("/:id").put(isAdmin, updateUserFromDatabase); // Kullanıcı güncelleme (sadece admin)
 
 module.exports = router;

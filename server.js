@@ -3,6 +3,7 @@ require("dotenv").config();
 const cors = require("cors");
 const connectDatabase = require("./Helpers/connectDatabase");
 const router = require("./Routers/index");
+const cookieParser = require("cookie-parser");
 
 const app = express();
 const port = 3000;
@@ -11,15 +12,16 @@ app.use(cors());
 // json formayına dönüştürmek için gerekli olan kodlar
 app.use(express.json()); // json formatına çeviriyor
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 app.get("/", (req, res) => {
-  res.send("Hello World!");
+  res.send("Finance blog");
 });
-app.use("/api", router);
+app.use("/blog", router);
 
 // Database connection
 connectDatabase();
-// app.use(express.json());
+
 // app.use(bodyParser.json());
 
 app.use((err, req, res, next) => {

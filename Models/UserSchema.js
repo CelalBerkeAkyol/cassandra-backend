@@ -1,41 +1,54 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
-const crypto = require("crypto");
 
-// bir kullanıcının hangi verileri olacak ve saklanacak
-const userSchema = new mongoose.Schema({
-  email: String,
-  password: String,
-  userName: String,
-  lastName: String,
-  role: {
-    type: String,
-    enum: ["user", "admin"],
-    default: "user",
+// Kullanıcı şeması
+const userSchema = new mongoose.Schema(
+  {
+    userName: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+    password: {
+      type: String,
+      required: true,
+    },
+    role: {
+      type: String,
+      enum: ["author", "admin"],
+      default: "author",
+    },
+    refreshToken: {
+      type: String,
+      default: null, // Varsayılan olarak null
+    },
   },
-  refreshToken: {
-    type: String,
-    default: " ",
-  },
-});
-// ------ fonksiyonlar -------
+  {
+    timestamps: true, // createdAt ve updatedAt alanlarını otomatik oluşturur
+  }
+);
 
-// Şifre hashlama
-userSchema.pre("save", function (next) {
+// ------ Şema Fonksiyonları -------
+
+// Şifre hashleme (kaydetmeden önce)
+userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) {
     return next();
   }
-
-  bcrypt.genSalt(10, (err, salt) => {
-    if (err) return next(err);
-
-    bcrypt.hash(this.password, salt, (err, hash) => {
-      if (err) return next(err);
-
-      this.password = hash;
-      next();
-    });
-  });
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (err) {
+    next(err);
+  }
 });
 
-module.exports = mongoose.model("User", userSchema); // dışarıya collection çıkartır
+// Şifre doğrulama
+userSchema.methods.comparePassword = async function (candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password);
+};
+
+// Kullanıcı modelini dışa aktar
+module.exports = mongoose.model("User", userSchema);
