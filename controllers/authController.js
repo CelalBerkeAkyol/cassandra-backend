@@ -114,10 +114,11 @@ const refreshAccessToken = async (req, res) => {
   }
 };
 const logout = async (req, res) => {
-  const { username } = req.body;
+  const username = req.body.username;
+  console.log(username);
 
   try {
-    const user = await User.findOne({ username });
+    const user = await User.findOne({ userName: username });
     if (!user) return res.status(404).json({ message: "Kullanıcı bulunamadı" });
 
     user.refreshToken = null;
