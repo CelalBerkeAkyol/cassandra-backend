@@ -11,7 +11,7 @@ const {
 } = require("../controllers/authController"); // token burada oluşturuluyor
 
 // admin tarafından post isteği ile veri tabanına kullanıcı ekleme
-router.post("/create-user", createUser);
+router.post("/create-user", getAccessToRoute, isAdmin, createUser);
 
 router.post("/login", login);
 // buraya refresh işlemleri atılacak

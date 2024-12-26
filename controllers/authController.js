@@ -57,7 +57,7 @@ const login = async (req, res) => {
 };
 // register yerine geçecek bir controller diyebiliriz
 const createUser = async (req, res, next) => {
-  const { userName, password, role } = req.body;
+  const { userName, password } = req.body;
 
   try {
     // Kullanıcının zaten var olup olmadığını kontrol et
@@ -72,7 +72,6 @@ const createUser = async (req, res, next) => {
     const newUser = await User.create({
       userName,
       password,
-      role,
     });
 
     res.status(201).json({

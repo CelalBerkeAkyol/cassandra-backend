@@ -14,7 +14,7 @@ const {
 
 // Ortak yol prefix'i kullanılarak rotalar birleştirildi
 router.use(getAccessToRoute); // Tüm rotalarda erişim kontrolü
-router.get("/:username", isAdmin, getUserByUserNameFromDatabase); // Belirli kullanıcıyı getirme (sadece admin)
+router.get("/:username", getUserByUserNameFromDatabase); // Belirli kullanıcıyı getirme (sadece admin)
 router.delete("/:username", isAdmin, deleteUserFromDatabase); // Belirli kullanıcıyı silme (sadece admin)
 router
   .route("/")

@@ -11,18 +11,24 @@ const getAllUserFromDatabase = async (req, res) => {
   res.json(bilgiler);
 };
 
-// veri tabanından idsi verilen kullanıcıyı json formatında döndürür
 const getUserByUserNameFromDatabase = async (req, res) => {
   const username = req.params.username;
-  const bilgiler = await User.findOne({ userName: username });
-  if (!bilgiler) {
-    return res.status(404).json({ message: "Kullanıcı bulunamadı." });
-  }
+  try {
+    const bilgiler = await User.findOne(
+      { userName: username },
+      "userName role createdAt"
+    ); // Sadece gerekli alanları seçiyoruz
+    if (!bilgiler) {
+      return res.status(404).json({ message: "Kullanıcı bulunamadı." });
+    }
 
-  res.json({
-    message: "Bireysel kullanıcı bilgileriniz",
-    bilgiler,
-  });
+    res.json({
+      message: "Bireysel kullanıcı bilgileriniz",
+      data: bilgiler, // Sadece seçili alanları döndürüyoruz
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Sunucu hatası", error: error.message });
+  }
 };
 
 //bir kullanıcıyı veri tabanından sil
