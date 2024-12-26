@@ -49,7 +49,7 @@ const login = async (req, res) => {
       maxAge: 24 * 60 * 60 * 1000, // 1 gün
     });
     // TODO token döndürmeyi sonrasında sil
-    res.status(200).json({ message: "Giriş başarılı", accessToken });
+    res.status(200).json({ message: "Giriş başarılı" });
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Sunucu hatası" });
