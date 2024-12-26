@@ -46,14 +46,21 @@ const deleteUserFromDatabase = async (req, res) => {
 
 // tüm kullanıcıları veri tabanından siler
 const deleteAllUsersFromDatabase = async (req, res) => {
+  const delete_confirm = req.body.delete_confirm;
   try {
     // Tüm kullanıcıları silme işlemi
-    const result = await User.deleteMany({});
+    if (delete_confirm == "DELETE ALL USER") {
+      const result = await User.deleteMany({});
 
-    // Sonuçları döndürüyoruz
-    res.status(200).json({
-      success: true,
-      message: `${result.deletedCount} kullanıcı silindi.`,
+      // Sonuçları döndürüyoruz
+      res.status(200).json({
+        success: true,
+        message: `${result.deletedCount} kullanıcı silindi.`,
+      });
+    }
+    res.status(400).json({
+      success: false,
+      message: "Sanırım silmekten vazgeçtiniz ",
     });
   } catch (error) {
     // Hata durumunu yakalayıp döndürüyoruz

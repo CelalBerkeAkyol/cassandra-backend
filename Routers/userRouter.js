@@ -20,7 +20,7 @@ router
   .use(isAdmin)
   .route("/")
   .get(getAllUserFromDatabase) // Tüm kullanıcıları listeleme (sadece admin)
-  .post(deleteAllUsersFromDatabase); // Tüm kullanıcıları silme (sadece admin)
+  .delete(deleteAllUsersFromDatabase); // Tüm kullanıcıları silme (sadece admin)
 router.route("/:username").put(updateUserFromDatabase); // Kullanıcı güncelleme (sadece admin)
 
 module.exports = router;
