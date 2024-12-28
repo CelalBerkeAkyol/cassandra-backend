@@ -5,7 +5,8 @@ const { getAccessTokenFromHeader } = require("../Helpers/tokenHelpers");
 // Routa erişme izni veren fonksiyon
 const getAccessToRoute = (req, res, next) => {
   // header kısmından access_token alınır
-  const access_token = getAccessTokenFromHeader(req);
+
+  const access_token = req.cookies.token; // Cookie'den token'ı al
   // access_token bulunmuyorsa aşağıdaki hata gönderilir
   if (!access_token) {
     return res
@@ -18,6 +19,7 @@ const getAccessToRoute = (req, res, next) => {
     // kullanıcı verileri decoded içerisinde saklanıyor.
     const decoded = jwt.verify(access_token, process.env.JWT_SECRET); // Bu da .env dosyasından alınmalı
     req.user = decoded;
+
     return next(); // herhangi bir response yok diğer isteğe geçiyor
   } catch (err) {
     // token hatalı ise geçersiz token hatası döndürülüyor

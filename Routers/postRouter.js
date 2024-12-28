@@ -8,12 +8,11 @@ const {
   getOnePost,
   updatePost,
   detelePost,
+  postById,
 } = require("../controllers/postController");
-const {
-  getAllCategory,
-  gettAllStatus,
-} = require("../controllers/categoryController");
+
 const { checkPostId } = require("../middlewares/databaseMidleware");
+
 //Tüm postları getir
 router.get("/", getAllPosts);
 // id si verilen bir post varsa getirilir
@@ -24,11 +23,8 @@ router.get("/:slug", getOnePost);
 router.post("/", getAccessToRoute, isAdmin, sanitizePostContent, newPost);
 router
   .route("/:id")
+
   .put(getAccessToRoute, isAdmin, checkPostId, sanitizePostContent, updatePost)
   .delete(getAccessToRoute, isAdmin, checkPostId, detelePost);
-
-// postların kategorilerini
-router.get("/post-categories", getAllCategory);
-// postların durumlarını
-router.get("/post-status", gettAllStatus);
+router.get("/one-post/:id", postById);
 module.exports = router;

@@ -1,5 +1,6 @@
 const Post = require("../Models/PostSchema");
 
+// kategori ismine göre ilgili postları getirir
 const getPostsByCategoriesName = async (req, res) => {
   const categoryName = req.params.category;
 
@@ -34,18 +35,8 @@ const getAllCategory = async (req, res) => {
     allCategory,
   });
 };
-//statusleri veri tabanından çeker
-const gettAllStatus = async (req, res) => {
-  const allStatus = await Post.schema.path("status").enumValues;
-  res.json({
-    success: true,
-    text: "Bütün postlar bunlardır",
-    allStatus,
-  });
-};
 
 module.exports = {
   getPostsByCategoriesName,
   getAllCategory,
-  gettAllStatus,
 };

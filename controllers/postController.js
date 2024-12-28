@@ -1,5 +1,5 @@
 // mongo database ile işlem yapabilmek için
-
+const mongoose = require("mongoose");
 const Post = require("../Models/PostSchema");
 // yeni post ekleme fonksiyonu
 const newPost = async (req, res) => {
@@ -17,7 +17,7 @@ const newPost = async (req, res) => {
     // Yeni bir post oluşturalım
     const post = await Post.create({
       ...req.body, // Gönderilen diğer bilgileri al
-      user: req.user.id, // Kullanıcı id'si ekle
+      author: req.user.id,
     });
 
     // Başarı durumunda 201 ve post bilgilerini döndürelim
@@ -126,10 +126,36 @@ const updatePost = async (req, res) => {
   }
 };
 
+const postById = async (req, res) => {
+  try {
+    const post_id = req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(post_id)) {
+      return res.status(400).json({ message: "Geçerli bir ID giriniz." });
+    }
+
+    const post = await Post.findById(post_id);
+    if (!post) {
+      console.log("Post bulunamadı:", post_id);
+      return res
+        .status(404)
+        .json({ success: false, message: "Post bulunamadı." });
+    }
+
+    return res.status(200).json({ success: true, post });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Sunucu hatası.",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   newPost,
   getAllPosts,
   detelePost,
   updatePost,
   getOnePost,
+  postById,
 };
