@@ -30,6 +30,25 @@ const getUserByUserNameFromDatabase = async (req, res) => {
     res.status(500).json({ message: "Sunucu hatası", error: error.message });
   }
 };
+const getUserByID = async (req, res) => {
+  const id = req.params.id;
+  try {
+    const bilgiler = await User.findById(
+      { _id: id },
+      "userName role createdAt"
+    ); // Sadece gerekli alanları seçiyoruz
+    if (!bilgiler) {
+      return res.status(404).json({ message: "Kullanıcı bulunamadı." });
+    }
+
+    res.json({
+      message: "Bireysel kullanıcı bilgileriniz",
+      data: bilgiler, // Sadece seçili alanları döndürüyoruz
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Sunucu hatası", error: error.message });
+  }
+};
 
 //bir kullanıcıyı veri tabanından sil
 const deleteUserFromDatabase = async (req, res) => {
@@ -37,6 +56,19 @@ const deleteUserFromDatabase = async (req, res) => {
   const result = await User.deleteOne({ userName: username });
   if (!username) {
     return res.status(400).json({ message: "Username is required" });
+  }
+  if (result.deletedCount === 0) {
+    return res.status(404).json({ message: "Kullanıcı bulunamadı." });
+  }
+  res.status(201).send("User has been deleted successfully");
+};
+
+//bir kullanıcıyı veri tabanından sil
+const deleteUserByID = async (req, res) => {
+  const id = req.params.id;
+  const result = await User.deleteOne({ _id: id });
+  if (!id) {
+    return res.status(400).json({ message: "ID is required" });
   }
   if (result.deletedCount === 0) {
     return res.status(404).json({ message: "Kullanıcı bulunamadı." });
@@ -103,4 +135,6 @@ module.exports = {
   deleteUserFromDatabase,
   updateUserFromDatabase,
   getUserByUserNameFromDatabase,
+  getUserByID,
+  deleteUserByID,
 };

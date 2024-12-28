@@ -4,8 +4,9 @@ const {
   getAllUserFromDatabase,
   deleteAllUsersFromDatabase,
   updateUserFromDatabase,
-  getUserByUserNameFromDatabase,
-  deleteUserFromDatabase,
+
+  getUserByID,
+  deleteUserByID,
 } = require("../controllers/userController.js");
 const {
   getAccessToRoute,
@@ -14,8 +15,8 @@ const {
 
 // Ortak yol prefix'i kullanılarak rotalar birleştirildi
 router.use(getAccessToRoute); // Tüm rotalarda erişim kontrolü
-router.get("/:username", getUserByUserNameFromDatabase);
-router.delete("/:username", isAdmin, deleteUserFromDatabase); // Belirli kullanıcıyı silme (sadece admin)
+router.get("/:id", getUserByID);
+router.delete("/:id", isAdmin, deleteUserByID); // Belirli kullanıcıyı silme (sadece admin)
 router
   .use(isAdmin)
   .route("/")
