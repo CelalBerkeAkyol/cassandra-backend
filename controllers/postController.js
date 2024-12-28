@@ -108,13 +108,11 @@ const deletePost = async (req, res) => {
     await req.post.deleteOne();
     res.status(200).json({ success: true, message: "Post başarıyla silindi." });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Sunucu hatası.",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Sunucu hatası.",
+      error: error.message,
+    });
   }
 };
 
@@ -140,13 +138,11 @@ const updatePost = async (req, res) => {
 
     res.status(200).json({ success: true, data: updatedPost });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Sunucu hatası.",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Sunucu hatası.",
+      error: error.message,
+    });
   }
 };
 
@@ -155,13 +151,11 @@ const postById = async (req, res) => {
   try {
     res.status(200).json({ success: true, post: req.post });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Sunucu hatası.",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Sunucu hatası.",
+      error: error.message,
+    });
   }
 };
 

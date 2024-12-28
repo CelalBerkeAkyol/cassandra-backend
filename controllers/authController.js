@@ -45,7 +45,8 @@ const login = async (req, res) => {
     // Token'i cookie'ye ekle
     res.cookie("token", accessToken, {
       httpOnly: true,
-
+      secure: process.env.NODE_ENV === "production", // Sadece HTTPS üzerinde gönder
+      sameSite: "Lax", // CSRF koruması için
       maxAge: 24 * 60 * 60 * 1000, // 1 gün
     });
     // TODO token döndürmeyi sonrasında sil

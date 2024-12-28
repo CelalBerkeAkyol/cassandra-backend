@@ -1,6 +1,5 @@
 // /middlewares/authMiddleware.js
 const jwt = require("jsonwebtoken");
-const { getAccessTokenFromHeader } = require("../Helpers/tokenHelpers");
 
 // Routa erişme izni veren fonksiyon
 const getAccessToRoute = (req, res, next) => {

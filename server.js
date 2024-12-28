@@ -8,7 +8,12 @@ const cookieParser = require("cookie-parser");
 const app = express();
 const port = 3000;
 
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:5173", // Frontend URL
+    credentials: true, // Cookie gönderimine izin verir
+  })
+);
 // json formayına dönüştürmek için gerekli olan kodlar
 app.use(express.json()); // json formatına çeviriyor
 app.use(express.urlencoded({ extended: true }));
