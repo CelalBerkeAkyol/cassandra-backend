@@ -29,12 +29,14 @@ const postSchema = new mongoose.Schema(
       required: [true, "Lütfen kategori giriniz"], // Uyarı metni ekleme
       trim: true,
       enum: [
-        "mikro-ekonomi",
-        "makro-ekonomi",
-        "kişisel-finans",
+        "Mikro Ekonomi",
+        "Makro Ekonomi",
+        "Kişisel Finans",
+        "Tasarruf",
         "Temel Analiz",
         "Teknik Analiz",
         "Kategori yok",
+        "Araştırma",
       ],
       default: "Kategori yok",
     },
@@ -47,7 +49,7 @@ const postSchema = new mongoose.Schema(
     ],
     status: {
       type: String,
-      enum: ["yayında", "düzenleniyor"],
+      enum: ["yayında", "düzenleniyor", "arşivlenmiş"],
       default: "düzenleniyor",
     },
     createdAt: {
