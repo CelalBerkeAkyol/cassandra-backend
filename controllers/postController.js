@@ -1,35 +1,33 @@
 // mongo database ile işlem yapabilmek için
 const mongoose = require("mongoose");
 const Post = require("../Models/PostSchema");
+
 // yeni post ekleme fonksiyonu
 const newPost = async (req, res) => {
-  // Req body ve user bilgilerini kontrol edelim
   const { title, content } = req.body;
 
+  // Verilerin eksik olup olmadığını kontrol et
   if (!title || !content) {
     return res.status(400).json({
       success: false,
-      message: "Başlık ve içerik zorunludur",
+      message: "Başlık ve içerik zorunludur.",
     });
   }
 
   try {
-    // Yeni bir post oluşturalım
     const post = await Post.create({
-      ...req.body, // Gönderilen diğer bilgileri al
-      author: req.user.id,
+      ...req.body,
+      author: req.user.id, // Kullanıcı bilgisini al ve ekle
     });
 
-    // Başarı durumunda 201 ve post bilgilerini döndürelim
     res.status(201).json({
       success: true,
       data: post,
     });
   } catch (error) {
-    // Hata durumunda 500 ve hata mesajını döndürelim
     res.status(500).json({
       success: false,
-      message: "Sunucu hatası, post oluşturulamadı",
+      message: "Sunucu hatası, post oluşturulamadı.",
       error: error.message,
     });
   }
@@ -38,38 +36,22 @@ const newPost = async (req, res) => {
 // bütün paylaşılmış postları veri tabanından çeker
 const getAllPosts = async (req, res) => {
   try {
-    // Sayfa ve limit bilgilerini al
-    const page = parseInt(req.query.page) || 1; // Varsayılan olarak 1. sayfa
-    const limit = parseInt(req.query.limit) || 10; // Varsayılan olarak 10 yazı
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
 
-    // Sayfalamada hangi yazıdan itibaren veri alınacağını hesaplayın (offset)
     const startIndex = (page - 1) * limit;
-    const endIndex = page * limit;
-
-    // Toplam yazı sayısını alın
     const total = await Post.countDocuments();
 
-    // Yazıları sayfalandırarak alın
-    const allPosts = await Post.find()
-      .skip(startIndex) // Geçerli sayfa için offset
-      .limit(limit); // Sayfa başına gösterilecek yazı adedi
+    const allPosts = await Post.find().skip(startIndex).limit(limit);
 
-    // Pagination objesini oluştur
     const pagination = {};
     if (startIndex > 0) {
-      pagination.previous = {
-        page: page - 1,
-        limit: limit,
-      };
+      pagination.previous = { page: page - 1, limit: limit };
     }
-    if (endIndex < total) {
-      pagination.next = {
-        page: page + 1,
-        limit: limit,
-      };
+    if (startIndex + limit < total) {
+      pagination.next = { page: page + 1, limit: limit };
     }
 
-    // Sonuçları döndür
     res.status(200).json({
       success: true,
       count: allPosts.length,
@@ -78,70 +60,38 @@ const getAllPosts = async (req, res) => {
       data: allPosts,
     });
   } catch (err) {
-    res.status(500).json({ success: false, error: "Bir hata oluştu" });
+    res.status(500).json({
+      success: false,
+      message: "Sunucu hatası, yazılar getirilemedi.",
+      error: err.message,
+    });
   }
 };
+
+// slug ile bir post getirir
 const getOnePost = async (req, res) => {
   const { slug } = req.params;
-  const post = await Post.findOne({ slug: slug });
-  return res.status(200).json({
-    success: true,
-    post: post,
-  });
-};
-const detelePost = async (req, res) => {
-  const { id } = req.params;
 
-  try {
-    await Post.deleteOne({ _id: id });
-    res.status(201).send("Post has been deleted successfully");
-  } catch (error) {
-    res.status(404).send("Eksik veya yanlış id değeri girdin");
-  }
-};
-const updatePost = async (req, res) => {
-  const id = req.params.id; // urlden post idsi alındı
-  const updatedData = req.body;
-
-  if (Object.keys(updatedData).length === 0) {
-    return res.status(404).send("Updated data bilgilerini girmedin");
-  }
-  try {
-    // post bul ve güncelle
-    const updatedPost = await Post.findByIdAndUpdate(id, updatedData, {
-      new: true, // Güncellenmiş postu geri döndürür
-      runValidators: true, // Schema validation'ları çalıştırır
+  if (!slug) {
+    return res.status(400).json({
+      success: false,
+      message: "Slug parametresi gereklidir.",
     });
-
-    if (!id) {
-      return res.status(404).send("Post not found"); // Kullanıcı bulunamazsa 404 döndür
-    }
-
-    res.json({
-      success: true,
-      data: updatedPost,
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
   }
-};
 
-const postById = async (req, res) => {
   try {
-    const post_id = req.params.id;
-    if (!mongoose.Types.ObjectId.isValid(post_id)) {
-      return res.status(400).json({ message: "Geçerli bir ID giriniz." });
-    }
-
-    const post = await Post.findById(post_id);
+    const post = await Post.findOne({ slug });
     if (!post) {
-      console.log("Post bulunamadı:", post_id);
-      return res
-        .status(404)
-        .json({ success: false, message: "Post bulunamadı." });
+      return res.status(404).json({
+        success: false,
+        message: "Böyle bir post bulunamadı.",
+      });
     }
 
-    return res.status(200).json({ success: true, post });
+    res.status(200).json({
+      success: true,
+      post,
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -151,10 +101,74 @@ const postById = async (req, res) => {
   }
 };
 
+// post silme fonksiyonu
+const deletePost = async (req, res) => {
+  try {
+    // req.post zaten var, doğrudan kullanabiliriz
+    await req.post.deleteOne();
+    res.status(200).json({ success: true, message: "Post başarıyla silindi." });
+  } catch (error) {
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Sunucu hatası.",
+        error: error.message,
+      });
+  }
+};
+
+// post güncelleme fonksiyonu
+const updatePost = async (req, res) => {
+  const updatedData = req.body;
+
+  if (Object.keys(updatedData).length === 0) {
+    return res
+      .status(400)
+      .json({ message: "Güncelleme için veri sağlanmadı." });
+  }
+
+  try {
+    const updatedPost = await Post.findByIdAndUpdate(
+      req.post._id,
+      updatedData,
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    res.status(200).json({ success: true, data: updatedPost });
+  } catch (error) {
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Sunucu hatası.",
+        error: error.message,
+      });
+  }
+};
+
+// id ile post getirme
+const postById = async (req, res) => {
+  try {
+    res.status(200).json({ success: true, post: req.post });
+  } catch (error) {
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Sunucu hatası.",
+        error: error.message,
+      });
+  }
+};
+
 module.exports = {
   newPost,
   getAllPosts,
-  detelePost,
+  deletePost,
   updatePost,
   getOnePost,
   postById,

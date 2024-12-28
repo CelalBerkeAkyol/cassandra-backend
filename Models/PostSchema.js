@@ -18,11 +18,7 @@ const postSchema = new mongoose.Schema(
       ref: "User",
       required: [true, "Lütfen yazar bilgisi giriniz"], // Uyarı metni ekleme
     },
-    tags: [
-      {
-        type: String,
-      },
-    ],
+
     // TO-DO kategoriler daha dinamik bir şekilde eklenir mi ?
     category: {
       type: String,
@@ -58,11 +54,6 @@ const postSchema = new mongoose.Schema(
     },
     updatedAt: {
       type: Date,
-    },
-
-    likes: {
-      type: Number,
-      default: 0,
     },
   },
   { timestamps: true }

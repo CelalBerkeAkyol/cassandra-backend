@@ -7,7 +7,7 @@ const {
   getAllPosts,
   getOnePost,
   updatePost,
-  detelePost,
+  deletePost,
   postById,
 } = require("../controllers/postController");
 
@@ -23,8 +23,7 @@ router.get("/:slug", getOnePost);
 router.post("/", getAccessToRoute, isAdmin, sanitizePostContent, newPost);
 router
   .route("/:id")
-
   .put(getAccessToRoute, isAdmin, checkPostId, sanitizePostContent, updatePost)
-  .delete(getAccessToRoute, isAdmin, checkPostId, detelePost);
-router.get("/one-post/:id", postById);
+  .delete(getAccessToRoute, isAdmin, checkPostId, deletePost);
+router.get("/one-post/:id", checkPostId, postById);
 module.exports = router;
