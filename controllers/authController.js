@@ -12,7 +12,7 @@ const generateTokens = (user) => {
     { id: user._id, username: user.userName, role: user.role },
     process.env.JWT_SECRET,
     {
-      expiresIn: "15m", // Access Token kısa süreli olmalı
+      expiresIn: "60m", // Access Token kısa süreli olmalı
     }
   );
 
@@ -36,13 +36,13 @@ const login = async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ message: "Geçersiz şifre" });
-
+    // eğer eşleşen bir kullanıcı varsa generateTokens çalışır ve accessToken oluşturulur
     const { accessToken, refreshToken } = generateTokens(user);
-    // Refresh Token'ı veritabanında sakla
+    // Refresh Token'ı veritabanında saklanır
     user.refreshToken = refreshToken;
     await user.save();
 
-    // Token'i cookie'ye ekle
+    // accessToken Token'i cookie'ye ekle
     res.cookie("token", accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", // Sadece HTTPS üzerinde gönder
@@ -114,6 +114,20 @@ const refreshAccessToken = async (req, res) => {
       .json({ message: "Geçersiz veya süresi dolmuş Refresh Token." });
   }
 };
+const verifyToken = async (req, res) => {
+  const token = req.cookies.token;
+
+  if (!token) {
+    return res.status(401).json({ error: "Token bulunamadı." });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    res.status(200).json({ valid: true, user: decoded });
+  } catch (err) {
+    res.status(401).json({ error: "Geçersiz token." });
+  }
+};
 const logout = async (req, res) => {
   const username = req.body.username;
   console.log(username);
@@ -138,5 +152,6 @@ module.exports = {
   login,
   createUser,
   refreshAccessToken,
+  verifyToken,
   logout,
 };

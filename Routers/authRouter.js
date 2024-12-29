@@ -7,6 +7,7 @@ const {
   login,
   createUser,
   refreshAccessToken,
+  verifyToken,
   logout,
 } = require("../controllers/authController"); // token burada oluşturuluyor
 
@@ -14,9 +15,12 @@ const {
 router.post("/create-user", getAccessToRoute, isAdmin, createUser);
 
 router.post("/login", login);
+router.post("/logout", getAccessToRoute, logout);
+
 // buraya refresh işlemleri atılacak
 router.post("/refresh-token", getAccessToRoute, refreshAccessToken);
-router.post("/logout", getAccessToRoute, logout);
+router.post("/verify-token", verifyToken);
+
 // Admin route'u, önce token doğrulaması yapılır, sonra admin kontrolü
 router.get("/admin", getAccessToRoute, isAdmin, (req, res) => {
   res.send("Welcome Admin! You have access.");
