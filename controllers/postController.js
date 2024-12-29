@@ -68,39 +68,6 @@ const getAllPosts = async (req, res) => {
   }
 };
 
-// slug ile bir post getirir
-const getOnePost = async (req, res) => {
-  const { slug } = req.params;
-
-  if (!slug) {
-    return res.status(400).json({
-      success: false,
-      message: "Slug parametresi gereklidir.",
-    });
-  }
-
-  try {
-    const post = await Post.findOne({ slug });
-    if (!post) {
-      return res.status(404).json({
-        success: false,
-        message: "Böyle bir post bulunamadı.",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      post,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Sunucu hatası.",
-      error: error.message,
-    });
-  }
-};
-
 // post silme fonksiyonu
 const deletePost = async (req, res) => {
   try {
@@ -159,11 +126,36 @@ const postById = async (req, res) => {
   }
 };
 
+// Post okunma sayısını artırma
+const incPostView = async (req, res) => {
+  try {
+    const post = await Post.findByIdAndUpdate(
+      req.post._id,
+      { $inc: { views: 1 } }, // views değerini 1 artırır
+      { new: true }
+    );
+
+    if (!post) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Post bulunamadı." });
+    }
+
+    res.status(200).json({ success: true, data: post });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Sunucu hatası.",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   newPost,
   getAllPosts,
   deletePost,
   updatePost,
-  getOnePost,
   postById,
+  incPostView,
 };

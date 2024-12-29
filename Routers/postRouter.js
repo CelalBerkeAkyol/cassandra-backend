@@ -5,7 +5,7 @@ const { getAccessToRoute, isAdmin } = require("../middlewares/authMiddleware");
 const {
   newPost,
   getAllPosts,
-  getOnePost,
+  incPostView,
   updatePost,
   deletePost,
   postById,
@@ -18,7 +18,6 @@ router.get("/", getAllPosts);
 // id si verilen bir post varsa getirilir
 // kategoriye göre post getirir
 
-router.get("/:slug", getOnePost);
 // post paylaşma
 router.post("/", getAccessToRoute, isAdmin, sanitizePostContent, newPost);
 router
@@ -26,4 +25,5 @@ router
   .put(getAccessToRoute, isAdmin, checkPostId, sanitizePostContent, updatePost)
   .delete(getAccessToRoute, isAdmin, checkPostId, deletePost);
 router.get("/one-post/:id", checkPostId, postById);
+router.put("/:id/view", checkPostId, incPostView);
 module.exports = router;

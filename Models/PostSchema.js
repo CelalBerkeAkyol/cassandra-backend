@@ -48,6 +48,10 @@ const postSchema = new mongoose.Schema(
       enum: ["yayında", "düzenleniyor", "arşivlenmiş"],
       default: "düzenleniyor",
     },
+    views: {
+      type: Number,
+      default: 0, // Başlangıç değeri 0
+    },
     createdAt: {
       type: Date,
       default: Date.now,
