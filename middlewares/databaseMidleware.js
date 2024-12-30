@@ -15,12 +15,10 @@ const checkPostId = async (req, res, next) => {
     // ID'ye sahip bir post olup olmadığını kontrol et
     const post = await Post.findById(id);
     if (!post) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: "Bu ID'ye ait bir post bulunmamaktadır.",
-        });
+      return res.status(404).json({
+        success: false,
+        message: "Bu ID'ye ait bir post bulunmamaktadır.",
+      });
     }
 
     // Post'u req.post içine ekle, diğer middleware'ler ve fonksiyonlar bunu kullanabilir
@@ -28,13 +26,11 @@ const checkPostId = async (req, res, next) => {
 
     next();
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Sunucu hatası.",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Sunucu hatası.",
+      error: error.message,
+    });
   }
 };
 
