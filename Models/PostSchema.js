@@ -45,8 +45,8 @@ const postSchema = new mongoose.Schema(
     ],
     status: {
       type: String,
-      enum: ["yayında", "düzenleniyor", "arşivlenmiş"],
-      default: "düzenleniyor",
+      enum: ["yayında", "düzenleniyor", "arşivlenmiş", "taslak"],
+      default: "taslak",
     },
     views: {
       type: Number,
