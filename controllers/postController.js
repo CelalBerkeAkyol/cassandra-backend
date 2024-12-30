@@ -113,10 +113,28 @@ const updatePost = async (req, res) => {
   }
 };
 
-// id ile post getirme
 const postById = async (req, res) => {
   try {
-    res.status(200).json({ success: true, post: req.post });
+    // Tarih formatlama
+    const formattedPost = {
+      ...req.post._doc,
+      createdAt: new Date(req.post.createdAt).toLocaleString("tr-TR", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      updatedAt: new Date(req.post.updatedAt).toLocaleString("tr-TR", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    };
+
+    res.status(200).json({ success: true, post: formattedPost });
   } catch (error) {
     res.status(500).json({
       success: false,
