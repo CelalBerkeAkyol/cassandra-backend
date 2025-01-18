@@ -8,6 +8,7 @@ const User = require("../Models/UserSchema"); // User bir colleciton
 
 // Token oluşturma
 const generateTokens = (user) => {
+  console.log("generateTokens çalıştı");
   const accessToken = jwt.sign(
     { id: user._id, username: user.userName, role: user.role },
     process.env.JWT_SECRET,
@@ -28,6 +29,7 @@ const generateTokens = (user) => {
 };
 
 const login = async (req, res) => {
+  console.log("login çalıştı");
   const { username, password } = req.body;
 
   try {
@@ -58,6 +60,7 @@ const login = async (req, res) => {
 };
 // register yerine geçecek bir controller diyebiliriz
 const createUser = async (req, res, next) => {
+  console.log("createUser çalıştı");
   const { userName, password } = req.body;
 
   try {
@@ -84,6 +87,7 @@ const createUser = async (req, res, next) => {
   }
 };
 const refreshAccessToken = async (req, res) => {
+  console.log("refreshAccessToken çalıştı");
   const { refreshToken } = req.cookies; // Refresh Token Cookie'den alınır
 
   if (!refreshToken)
@@ -115,6 +119,7 @@ const refreshAccessToken = async (req, res) => {
   }
 };
 const verifyToken = async (req, res) => {
+  console.log("verifyToken çalıştı");
   const token = req.cookies.token;
 
   if (!token) {

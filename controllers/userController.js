@@ -4,6 +4,7 @@ const User = require("../Models/UserSchema");
 
 // veri tabanındaki tüm yazarları json formatında döndürür
 const getAllUserFromDatabase = async (req, res) => {
+  console.log("getAllUserFromDatabase çalıştı ");
   const bilgiler = await User.find({});
   if (bilgiler.length === 0) {
     return res.status(404).json({ message: "Hiç kullanıcı bulunamadı." });
@@ -12,6 +13,7 @@ const getAllUserFromDatabase = async (req, res) => {
 };
 
 const getUserByUserNameFromDatabase = async (req, res) => {
+  console.log("getUserByUserNameFromDatabase çalıştı");
   const username = req.params.username;
   try {
     const bilgiler = await User.findOne(
@@ -31,6 +33,7 @@ const getUserByUserNameFromDatabase = async (req, res) => {
   }
 };
 const getUserByID = async (req, res) => {
+  console.log("getUserByID çalıştı");
   const id = req.params.id;
   try {
     const bilgiler = await User.findById(
