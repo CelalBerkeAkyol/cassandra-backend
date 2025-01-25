@@ -51,8 +51,12 @@ const login = async (req, res) => {
       sameSite: "Lax", // CSRF koruması için
       maxAge: 24 * 60 * 60 * 1000, // 1 gün
     });
-    // TODO token döndürmeyi sonrasında sil
-    res.status(200).json({ message: "Giriş başarılı" });
+    res.status(200).json({
+      userName: user.userName,
+      userRole: user.role,
+      message: "Giriş başarılı",
+    });
+    console.log("access token : " + accessToken);
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Sunucu hatası" });
@@ -128,6 +132,7 @@ const verifyToken = async (req, res) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log(decoded);
     return res.status(200).json({ valid: true, user: decoded });
   } catch (error) {
     return res.status(401).json({ valid: false, error: "Geçersiz token." });
