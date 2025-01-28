@@ -87,6 +87,12 @@ const deletePost = async (req, res) => {
 const updatePost = async (req, res) => {
   const updatedData = req.body;
 
+  // Eğer category alanı eksikse, mevcut olanı ekleyelim
+  updatedData.title = updatedData.title || req.post.title;
+  updatedData.content = updatedData.content || req.post.content;
+  updatedData.category = updatedData.category || req.post.category;
+  updatedData.author = updatedData.author || req.post.author; // Burada "User" yerine mevcut yazar kullan
+
   if (Object.keys(updatedData).length === 0) {
     return res
       .status(400)
@@ -99,9 +105,15 @@ const updatePost = async (req, res) => {
       updatedData,
       {
         new: true,
-        runValidators: true,
+        runValidators: true, // Şema validasyonunu çalıştır
       }
     );
+
+    if (!updatedPost) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Post bulunamadı." });
+    }
 
     res.status(200).json({ success: true, data: updatedPost });
   } catch (error) {
