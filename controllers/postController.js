@@ -42,7 +42,10 @@ const getAllPosts = async (req, res) => {
     const startIndex = (page - 1) * limit;
     const total = await Post.countDocuments();
 
-    const allPosts = await Post.find().skip(startIndex).limit(limit);
+    const allPosts = await Post.find()
+      .sort({ createdAt: -1 })
+      .skip(startIndex)
+      .limit(limit);
 
     const pagination = {};
     if (startIndex > 0) {
