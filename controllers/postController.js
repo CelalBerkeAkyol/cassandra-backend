@@ -1,7 +1,7 @@
 // mongo database ile işlem yapabilmek için
 const mongoose = require("mongoose");
 const Post = require("../Models/PostSchema");
-
+const User = require("../Models/UserSchema");
 // yeni post ekleme fonksiyonu
 const newPost = async (req, res) => {
   const { title, content } = req.body;
@@ -128,8 +128,9 @@ const updatePost = async (req, res) => {
 const postById = async (req, res) => {
   try {
     // Tarihleri formatla
-
-    res.status(200).json({ success: true, post: req.post });
+    postsAuthor = await User.findById(req.post.author);
+    authorName = postsAuthor.userName;
+    res.status(200).json({ success: true, post: req.post, author: authorName });
   } catch (error) {
     res.status(500).json({
       success: false,
