@@ -45,7 +45,8 @@ const getAllPosts = async (req, res) => {
     const allPosts = await Post.find()
       .sort({ createdAt: -1 })
       .skip(startIndex)
-      .limit(limit);
+      .limit(limit)
+      .populate("author", "userName");
 
     const pagination = {};
     if (startIndex > 0) {
@@ -130,10 +131,8 @@ const updatePost = async (req, res) => {
 
 const postById = async (req, res) => {
   try {
-    // Tarihleri formatla
-    postsAuthor = await User.findById(req.post.author);
-    authorName = postsAuthor.userName;
-    res.status(200).json({ success: true, post: req.post, author: authorName });
+    const post = await req.post.populate("author", "userName ");
+    res.status(200).json({ success: true, post });
   } catch (error) {
     res.status(500).json({
       success: false,
