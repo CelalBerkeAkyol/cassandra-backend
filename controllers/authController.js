@@ -44,12 +44,17 @@ const login = async (req, res) => {
     user.refreshToken = refreshToken;
     await user.save();
 
-    // accessToken Token'i cookie'ye ekle
     res.cookie("token", accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // Sadece HTTPS üzerinde gönder
-      sameSite: "Lax", // CSRF koruması için
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
       maxAge: 24 * 60 * 60 * 1000, // 1 gün
+    });
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 gün
     });
     res.status(200).json({
       userName: user.userName,
@@ -139,11 +144,8 @@ const verifyToken = async (req, res) => {
   }
 };
 const logout = async (req, res) => {
-  const username = req.body.username;
-  console.log(username);
-
   try {
-    const user = await User.findOne({ userName: username });
+    const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: "Kullanıcı bulunamadı" });
 
     user.refreshToken = null;

@@ -46,7 +46,7 @@ const getAllPosts = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(startIndex)
       .limit(limit)
-      .populate("author", "userName");
+      .populate("author", "userName role");
 
     const pagination = {};
     if (startIndex > 0) {

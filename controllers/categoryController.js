@@ -5,17 +5,24 @@ const getPostsByCategoriesName = async (req, res) => {
   const categoryName = req.params.category;
 
   try {
-    // Kategori adına göre postları veritabanından getirir
-    const posts = await Post.find({ category: categoryName }).exec();
+    // Kategori adına göre postları en yeni tarihten en eskiye sıralayarak getir
+    const posts = await Post.find({ category: categoryName })
+      .populate("author", "userName role profileImage") // Yazar bilgisini ekle
+      .sort({ createdAt: -1 }) // En yeni postları en üstte göster
+      .exec();
+
     // Eğer post bulunmazsa
     if (!posts || posts.length === 0) {
       return res
         .status(200)
-        .json({ success: true, message: "Herhangi bir post bulunmamaktadır." });
+        .json({
+          success: true,
+          message: "Bu kategoriye ait herhangi bir post bulunmamaktadır.",
+        });
     }
 
     // Postlar bulunduysa bunları döndür
-    return res.status(200).json({ success: true, posts: posts });
+    return res.status(200).json({ success: true, posts });
   } catch (error) {
     // Hata yönetimi
     return res.status(500).json({
