@@ -1,13 +1,10 @@
 // /middlewares/authMiddleware.js
 const jwt = require("jsonwebtoken");
 
-// Routa erişme izni veren fonksiyon
 const getAccessToRoute = (req, res, next) => {
-  // header kısmından access_token alınır
-
-  const access_token = req.cookies.token; // Cookie'den token'ı al
-  // access_token bulunmuyorsa aşağıdaki hata gönderilir
+  const access_token = req.cookies.token;
   if (!access_token) {
+    console.error("getAccessToRoute: Token bulunamadı.");
     return res
       .status(403)
       .send(
@@ -15,25 +12,27 @@ const getAccessToRoute = (req, res, next) => {
       );
   }
   try {
-    // kullanıcı verileri decoded içerisinde saklanıyor.
-    const decoded = jwt.verify(access_token, process.env.JWT_SECRET); // Bu da .env dosyasından alınmalı
+    const decoded = jwt.verify(access_token, process.env.JWT_SECRET);
     req.user = decoded;
-
-    return next(); // herhangi bir response yok diğer isteğe geçiyor
+    console.info("getAccessToRoute: Token doğrulandı.");
+    return next();
   } catch (err) {
-    // token hatalı ise geçersiz token hatası döndürülüyor
+    console.error("getAccessToRoute: Geçersiz token.", err);
     return res.status(401).send("Invalid Token");
   }
 };
-const isAdmin = (req, res, next) => {
-  const userRole = req.user.role; // req.user'dan rolü alın
 
+const isAdmin = (req, res, next) => {
+  const userRole = req.user.role;
   if (userRole === "admin") {
-    return next(); // Yetki varsa, bir sonraki middleware'e geç
+    console.info("isAdmin: Admin yetkisi doğrulandı.");
+    return next();
   } else {
+    console.error("isAdmin: Yetkisiz erişim, admin değilsiniz.");
     return res
       .status(403)
       .send("You are not authorized to perform this action");
   }
 };
+
 module.exports = { getAccessToRoute, isAdmin };
