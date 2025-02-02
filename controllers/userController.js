@@ -1,104 +1,143 @@
-// mongo database ile işlem yapabilmek için
-const mongosee = require("mongoose");
+// /controllers/userController.js
+const mongoose = require("mongoose");
 const User = require("../Models/UserSchema");
 
-// veri tabanındaki tüm yazarları json formatında döndürür
 const getAllUserFromDatabase = async (req, res) => {
-  console.log("getAllUserFromDatabase çalıştı ");
-  const bilgiler = await User.find({});
-  if (bilgiler.length === 0) {
-    return res.status(404).json({ message: "Hiç kullanıcı bulunamadı." });
+  console.info(
+    "getAllUserFromDatabase: Tüm kullanıcılar getirilmeye çalışılıyor."
+  );
+  try {
+    const bilgiler = await User.find({});
+    if (bilgiler.length === 0) {
+      console.info("getAllUserFromDatabase: Hiç kullanıcı bulunamadı.");
+      return res.status(404).json({ message: "Hiç kullanıcı bulunamadı." });
+    }
+    console.info(
+      `getAllUserFromDatabase: ${bilgiler.length} kullanıcı getirildi.`
+    );
+    res.json(bilgiler);
+  } catch (error) {
+    console.error("getAllUserFromDatabase hata:", error);
+    res.status(500).json({ message: "Sunucu hatası", error: error.message });
   }
-  res.json(bilgiler);
 };
 
 const getUserByUserNameFromDatabase = async (req, res) => {
-  console.log("getUserByUserNameFromDatabase çalıştı");
+  console.info("getUserByUserNameFromDatabase: Kullanıcı araması başladı.");
   const username = req.params.username;
   try {
     const bilgiler = await User.findOne(
       { userName: username },
       "userName role createdAt"
-    ); // Sadece gerekli alanları seçiyoruz
+    );
     if (!bilgiler) {
+      console.info(
+        "getUserByUserNameFromDatabase: Kullanıcı bulunamadı:",
+        username
+      );
       return res.status(404).json({ message: "Kullanıcı bulunamadı." });
     }
 
+    console.info(
+      "getUserByUserNameFromDatabase: Kullanıcı getirildi:",
+      username
+    );
     res.json({
       message: "Bireysel kullanıcı bilgileriniz",
-      data: bilgiler, // Sadece seçili alanları döndürüyoruz
+      data: bilgiler,
     });
   } catch (error) {
+    console.error("getUserByUserNameFromDatabase hata:", error);
     res.status(500).json({ message: "Sunucu hatası", error: error.message });
   }
 };
+
 const getUserByID = async (req, res) => {
-  console.log("getUserByID çalıştı");
+  console.info("getUserByID: Kullanıcı ID ile aranıyor.");
   const id = req.params.id;
   try {
     const bilgiler = await User.findById(
       { _id: id },
       "userName role createdAt"
-    ); // Sadece gerekli alanları seçiyoruz
+    );
     if (!bilgiler) {
+      console.info("getUserByID: Kullanıcı bulunamadı, ID:", id);
       return res.status(404).json({ message: "Kullanıcı bulunamadı." });
     }
 
+    console.info("getUserByID: Kullanıcı getirildi, ID:", id);
     res.json({
       message: "Bireysel kullanıcı bilgileriniz",
-      data: bilgiler, // Sadece seçili alanları döndürüyoruz
+      data: bilgiler,
     });
   } catch (error) {
+    console.error("getUserByID hata:", error);
     res.status(500).json({ message: "Sunucu hatası", error: error.message });
   }
 };
 
-//bir kullanıcıyı veri tabanından sil
 const deleteUserFromDatabase = async (req, res) => {
   const username = req.params.username;
-  const result = await User.deleteOne({ userName: username });
   if (!username) {
+    console.error("deleteUserFromDatabase: Username sağlanmadı.");
     return res.status(400).json({ message: "Username is required" });
   }
-  if (result.deletedCount === 0) {
-    return res.status(404).json({ message: "Kullanıcı bulunamadı." });
+  try {
+    const result = await User.deleteOne({ userName: username });
+    if (result.deletedCount === 0) {
+      console.info("deleteUserFromDatabase: Kullanıcı bulunamadı:", username);
+      return res.status(404).json({ message: "Kullanıcı bulunamadı." });
+    }
+    console.info("deleteUserFromDatabase: Kullanıcı silindi:", username);
+    res.status(201).send("User has been deleted successfully");
+  } catch (error) {
+    console.error("deleteUserFromDatabase hata:", error);
+    res.status(500).json({ message: "Sunucu hatası", error: error.message });
   }
-  res.status(201).send("User has been deleted successfully");
 };
 
-//bir kullanıcıyı veri tabanından sil
 const deleteUserByID = async (req, res) => {
   const id = req.params.id;
-  const result = await User.deleteOne({ _id: id });
   if (!id) {
+    console.error("deleteUserByID: ID sağlanmadı.");
     return res.status(400).json({ message: "ID is required" });
   }
-  if (result.deletedCount === 0) {
-    return res.status(404).json({ message: "Kullanıcı bulunamadı." });
+  try {
+    const result = await User.deleteOne({ _id: id });
+    if (result.deletedCount === 0) {
+      console.info("deleteUserByID: Kullanıcı bulunamadı, ID:", id);
+      return res.status(404).json({ message: "Kullanıcı bulunamadı." });
+    }
+    console.info("deleteUserByID: Kullanıcı silindi, ID:", id);
+    res.status(201).send("User has been deleted successfully");
+  } catch (error) {
+    console.error("deleteUserByID hata:", error);
+    res.status(500).json({ message: "Sunucu hatası", error: error.message });
   }
-  res.status(201).send("User has been deleted successfully");
 };
 
-// tüm kullanıcıları veri tabanından siler
 const deleteAllUsersFromDatabase = async (req, res) => {
   const delete_confirm = req.body.delete_confirm;
   try {
-    // Tüm kullanıcıları silme işlemi
-    if (delete_confirm == "DELETE ALL USER") {
+    if (delete_confirm === "DELETE ALL USER") {
       const result = await User.deleteMany({});
-
-      // Sonuçları döndürüyoruz
+      console.info(
+        "deleteAllUsersFromDatabase: Tüm kullanıcılar silindi, sayısı:",
+        result.deletedCount
+      );
       res.status(200).json({
         success: true,
         message: `${result.deletedCount} kullanıcı silindi.`,
       });
+    } else {
+      console.info("deleteAllUsersFromDatabase: Silme işlemi iptal edildi.");
+      res.status(400).json({
+        success: false,
+        message: "Sanırım silmekten vazgeçtiniz ",
+      });
     }
-    res.status(400).json({
-      success: false,
-      message: "Sanırım silmekten vazgeçtiniz ",
-    });
   } catch (error) {
-    // Hata durumunu yakalayıp döndürüyoruz
+    console.error("deleteAllUsersFromDatabase hata:", error);
     res.status(500).json({
       success: false,
       message: "Kullanıcılar silinirken bir hata oluştu.",
@@ -106,32 +145,31 @@ const deleteAllUsersFromDatabase = async (req, res) => {
     });
   }
 };
+
 const updateUserFromDatabase = async (req, res) => {
-  const username = req.params.username; // urlden kullanıcı name alındı
+  console.info("updateUserFromDatabase: Kullanıcı güncelleme işlemi başladı.");
+  const username = req.params.username;
   const updatedData = req.body;
   try {
-    // Kullanıcıyı bul ve güncelle
     const updatedUser = await User.findOneAndUpdate(
       { userName: username },
       updatedData,
-      {
-        new: true, // Güncellenmiş kullanıcıyı geri döndürür
-        runValidators: true, // Schema validation'ları çalıştırır
-      }
+      { new: true, runValidators: true }
     );
 
     if (!updatedUser) {
-      return res.status(404).send("User not found"); // Kullanıcı bulunamazsa 404 döndür
+      console.info("updateUserFromDatabase: Kullanıcı bulunamadı:", username);
+      return res.status(404).send("User not found");
     }
 
-    res.json({
-      success: true,
-      data: updatedData,
-    });
+    console.info("updateUserFromDatabase: Kullanıcı güncellendi:", username);
+    res.json({ success: true, data: updatedData });
   } catch (error) {
+    console.error("updateUserFromDatabase hata:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 module.exports = {
   getAllUserFromDatabase,
   deleteAllUsersFromDatabase,
