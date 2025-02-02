@@ -1,16 +1,17 @@
+// /helpers/getAccessTokenFromHeader.js
 const getAccessTokenFromHeader = (req) => {
-  // Authorization başlığından token al
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith("Bearer ")) {
+    console.info("getAccessTokenFromHeader: Token header üzerinden alındı.");
     return authHeader.split(" ")[1]; // Bearer token
   }
 
-  // Cookie'den token al
   if (req.cookies && req.cookies.token) {
-    return req.cookies.token; // HTTP-Only cookie
+    console.info("getAccessTokenFromHeader: Token cookie üzerinden alındı.");
+    return req.cookies.token;
   }
 
-  // Token bulunamazsa null döndür
+  console.warn("getAccessTokenFromHeader: Token bulunamadı.");
   return null;
 };
 
