@@ -1,10 +1,10 @@
+// middleware/upload.js
 const multer = require("multer");
-const path = require("path");
 const fs = require("fs");
 
 const uploadDir = "uploads/";
 
-// Dosya kaydedilmeden önce klasörün varlığını kontrol edip oluşturuyoruz.
+// Klasör yoksa oluşturuyoruz
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     if (!fs.existsSync(uploadDir)) {
@@ -13,8 +13,9 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
-    // Örneğin: 1672531234567-originalName.jpg
-    cb(null, Date.now() + "-" + file.originalname);
+    // Boşlukları tire ile değiştiriyoruz:
+    const sanitizedFilename = file.originalname.replace(/\s+/g, "-");
+    cb(null, Date.now() + "-" + sanitizedFilename);
   },
 });
 
