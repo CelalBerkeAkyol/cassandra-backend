@@ -1,22 +1,34 @@
-const addImageToPost = async (postId, imageData) => {
+const Image = require("../Models/ImageSchema");
+
+exports.uploadImage = async (req, res) => {
   try {
-    // Yeni bir resim oluştur
-    const newImage = await Image.create({
-      url: imageData.url,
-      altText: imageData.altText,
-      blogPost: postId, // Resmi blog yazısına bağla
+    if (!req.file) {
+      return res.status(400).json({ error: "Görsel dosyası bulunamadı." });
+    }
+
+    // Yüklenen dosyanın URL'si oluşturuluyor.
+    const imageUrl = `${req.protocol}://${req.get("host")}/uploads/${
+      req.file.filename
+    }`;
+
+    const { altText } = req.body;
+    if (!altText) {
+      return res
+        .status(400)
+        .json({ error: "Lütfen resim açıklaması giriniz." });
+    }
+
+    const image = new Image({
+      url: imageUrl,
+      altText,
     });
 
-    // İlgili postun images alanını güncelle
-    const updatedPost = await Post.findByIdAndUpdate(
-      postId,
-      { $push: { images: newImage._id } }, // Yeni resmi ekle
-      { new: true, runValidators: true }
-    );
+    await image.save();
 
-    return { success: true, post: updatedPost };
+    return res
+      .status(201)
+      .json({ message: "Görsel başarıyla yüklendi.", image });
   } catch (error) {
-    console.error("Hata:", error.message);
-    return { success: false, error: error.message };
+    return res.status(500).json({ error: error.message });
   }
 };
