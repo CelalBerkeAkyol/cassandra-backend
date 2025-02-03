@@ -32,3 +32,28 @@ exports.uploadImage = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
+
+exports.getImages = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    // En son eklenen görselleri üstte göstermek için createdAt alanına göre sıralıyoruz
+    const images = await Image.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    const total = await Image.countDocuments();
+    const totalPages = Math.ceil(total / limit);
+
+    return res.status(200).json({
+      images,
+      page,
+      totalPages,
+      total,
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
