@@ -69,3 +69,21 @@ exports.getImages = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
+
+exports.deleteImage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deletedImage = await Image.findByIdAndDelete(id);
+
+    if (!deletedImage) {
+      return res.status(404).json({ error: "Bu ID'li görsel bulunamadı." });
+    }
+
+    return res.json({
+      message: "Görsel başarıyla silindi.",
+      image: deletedImage,
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};

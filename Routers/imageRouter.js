@@ -13,4 +13,6 @@ router.post(
   upload.array("image", 10),
   imageController.uploadImages
 );
+
+router.delete("/:id", imageController.deleteImage);
 module.exports = router;
