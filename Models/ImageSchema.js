@@ -8,7 +8,6 @@ const imageSchema = new mongoose.Schema(
     },
     altText: {
       type: String,
-      required: [true, "Lütfen resim açıklaması giriniz"],
     },
     // Blog yazısı ile ilişki kaldırıldı.
   },
