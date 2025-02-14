@@ -10,7 +10,7 @@ router.get("/", imageController.getImages);
 
 router.post(
   "/multiple",
-  upload.array("image", 10),
+  upload.array("image", 50),
   imageController.uploadImages
 );
 

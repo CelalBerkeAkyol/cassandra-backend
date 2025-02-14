@@ -24,6 +24,7 @@ exports.uploadImages = async (req, res) => {
       // Model örneği oluşturup veritabanına kaydediyoruz
       const image = new Image({
         url: imageUrl,
+        filename: file.filename,
         altText: altText, // altText boş da olabilir
       });
       await image.save();

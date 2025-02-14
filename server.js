@@ -15,8 +15,8 @@ app.use(
   })
 );
 // json formayına dönüştürmek için gerekli olan kodlar
-app.use(express.json()); // json formatına çeviriyor
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "50mb" })); // JSON için 50MB'a çıkar
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(cookieParser());
 app.use("/uploads", express.static("uploads"));
 app.get("/", (req, res) => {

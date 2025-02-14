@@ -6,6 +6,10 @@ const imageSchema = new mongoose.Schema(
       type: String,
       required: [true, "Lütfen resim URL'si giriniz"],
     },
+    filename: {
+      type: String,
+      required: [true, "Dosya adı eksik"], // Dosya isminin kaydedilmesini zorunlu yaptık
+    },
     altText: {
       type: String,
     },
