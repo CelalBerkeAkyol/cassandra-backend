@@ -9,6 +9,8 @@ const {
   updatePost,
   deletePost,
   postById,
+  incPostLike,
+  decPostLike,
 } = require("../controllers/postController");
 
 const { checkPostId } = require("../middlewares/databaseMidleware");
@@ -26,4 +28,6 @@ router
   .delete(getAccessToRoute, isAdmin, checkPostId, deletePost);
 router.get("/one-post/:id", checkPostId, postById);
 router.put("/:id/view", checkPostId, incPostView);
+router.put("/:id/upvote", checkPostId, incPostLike);
+router.put("/:id/downvote", checkPostId, decPostLike);
 module.exports = router;

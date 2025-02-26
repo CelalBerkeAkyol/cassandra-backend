@@ -15,10 +15,12 @@ const newPost = async (req, res) => {
   }
 
   try {
+    // Yeni post oluştur
     const post = await Post.create({
       ...req.body,
       author: req.user.id, // token üzerinden gelen kullanıcı ID'si
     });
+
     console.info("newPost: Post oluşturuldu, ID:", post._id);
     res.status(201).json({
       success: true,
@@ -75,13 +77,41 @@ const getAllPosts = async (req, res) => {
   }
 };
 
+// ID'ye göre post getirir
+// checkPostId middleware'i ile post zaten req.post içerisine eklenmiştir
+const postById = async (req, res) => {
+  console.info("postById: Post getirme işlemi başladı, ID:", req.post._id);
+  try {
+    // populate sadece gerektiğinde yapılır
+    await req.post.populate("author", "userName");
+    console.info("postById: Post getirildi, ID:", req.post._id);
+
+    res.status(200).json({
+      success: true,
+      post: req.post,
+    });
+  } catch (error) {
+    console.error("postById hata:", error);
+    res.status(500).json({
+      success: false,
+      message: "Sunucu hatası.",
+      error: error.message,
+    });
+  }
+};
+
 // Post silme
+// checkPostId ile post önceden bulunmuş halde
 const deletePost = async (req, res) => {
   console.info("deletePost: Post silme işlemi başladı, ID:", req.post._id);
   try {
     await req.post.deleteOne();
     console.info("deletePost: Post başarıyla silindi, ID:", req.post._id);
-    res.status(200).json({ success: true, message: "Post başarıyla silindi." });
+
+    res.status(200).json({
+      success: true,
+      message: "Post başarıyla silindi.",
+    });
   } catch (error) {
     console.error("deletePost hata:", error);
     res.status(500).json({
@@ -93,39 +123,28 @@ const deletePost = async (req, res) => {
 };
 
 // Post güncelleme
+// Mevcut post objesini (req.post) kullanarak günceller
 const updatePost = async (req, res) => {
   console.info("updatePost: Post güncelleme işlemi başladı, ID:", req.post._id);
+
   const updatedData = req.body;
-
-  // Eğer bazı alanlar eksikse mevcut post verilerini kullan
-  updatedData.title = updatedData.title || req.post.title;
-  updatedData.content = updatedData.content || req.post.content;
-  updatedData.category = updatedData.category || req.post.category;
-  updatedData.author = updatedData.author || req.post.author;
-
   if (Object.keys(updatedData).length === 0) {
     console.error("updatePost: Güncelleme için veri sağlanmadı.");
-    return res
-      .status(400)
-      .json({ message: "Güncelleme için veri sağlanmadı." });
+    return res.status(400).json({
+      success: false,
+      message: "Güncelleme için veri sağlanmadı.",
+    });
   }
 
-  try {
-    const updatedPost = await Post.findByIdAndUpdate(
-      req.post._id,
-      updatedData,
-      {
-        new: true,
-        runValidators: true,
-      }
-    );
+  // Eksik alanlar varsa orijinal veriyi koru
+  req.post.title = updatedData.title || req.post.title;
+  req.post.content = updatedData.content || req.post.content;
+  req.post.category = updatedData.category || req.post.category;
+  // ihtiyaca göre başka alanlar da eklenebilir
 
-    if (!updatedPost) {
-      console.warn("updatePost: Post bulunamadı, ID:", req.post._id);
-      return res
-        .status(404)
-        .json({ success: false, message: "Post bulunamadı." });
-    }
+  try {
+    // Mongoose validations devreye girsin diye save() kullanıyoruz
+    const updatedPost = await req.post.save();
 
     console.info("updatePost: Post güncellendi, ID:", updatedPost._id);
     res.status(200).json({ success: true, data: updatedPost });
@@ -139,15 +158,24 @@ const updatePost = async (req, res) => {
   }
 };
 
-// ID'ye göre post getirir
-const postById = async (req, res) => {
-  console.info("postById: Post getirme işlemi başladı, ID:", req.post._id);
+// Post okunma sayısını artırır
+// Orijinal kaydı tekrar aramadan doğrudan req.post üzerinden güncelliyoruz
+const incPostView = async (req, res) => {
+  console.info(
+    "incPostView: Post view artırma işlemi başladı, ID:",
+    req.post._id
+  );
   try {
-    const post = await req.post.populate("author", "userName ");
-    console.info("postById: Post getirildi, ID:", post._id);
-    res.status(200).json({ success: true, post });
+    req.post.views = (req.post.views || 0) + 1; // null olabilir ihtimaline karşı
+    const updatedPost = await req.post.save();
+
+    console.info(
+      "incPostView: Post view sayısı artırıldı, yeni değer:",
+      updatedPost.views
+    );
+    res.status(200).json({ success: true, data: updatedPost });
   } catch (error) {
-    console.error("postById hata:", error);
+    console.error("incPostView hata:", error);
     res.status(500).json({
       success: false,
       message: "Sunucu hatası.",
@@ -156,33 +184,48 @@ const postById = async (req, res) => {
   }
 };
 
-// Post okunma sayısını artırır
-const incPostView = async (req, res) => {
+// Post beğeni sayısını artırma
+const incPostLike = async (req, res) => {
   console.info(
-    "incPostView: Post view artırma işlemi başladı, ID:",
+    "incPostLike: Post beğeni artırma işlemi başladı, ID:",
     req.post._id
   );
   try {
-    const post = await Post.findByIdAndUpdate(
-      req.post._id,
-      { $inc: { views: 1 } },
-      { new: true }
-    );
-
-    if (!post) {
-      console.warn("incPostView: Post bulunamadı, ID:", req.post._id);
-      return res
-        .status(404)
-        .json({ success: false, message: "Post bulunamadı." });
-    }
+    req.post.likes = (req.post.likes || 0) + 1;
+    const updatedPost = await req.post.save();
 
     console.info(
-      "incPostView: Post view sayısı artırıldı, yeni değer:",
-      post.views
+      "incPostLike: Post beğeni sayısı artırıldı, yeni değer:",
+      updatedPost.likes
     );
-    res.status(200).json({ success: true, data: post });
+    res.status(200).json({ success: true, data: updatedPost });
   } catch (error) {
-    console.error("incPostView hata:", error);
+    console.error("incPostLike hata:", error);
+    res.status(500).json({
+      success: false,
+      message: "Sunucu hatası.",
+      error: error.message,
+    });
+  }
+};
+
+// Post beğeni sayısını azaltma
+const decPostLike = async (req, res) => {
+  console.info(
+    "decPostLike: Post beğeni azaltma işlemi başladı, ID:",
+    req.post._id
+  );
+  try {
+    req.post.likes = (req.post.likes || 0) - 1;
+    const updatedPost = await req.post.save();
+
+    console.info(
+      "decPostLike: Post beğeni sayısı azaltıldı, yeni değer:",
+      updatedPost.likes
+    );
+    res.status(200).json({ success: true, data: updatedPost });
+  } catch (error) {
+    console.error("decPostLike hata:", error);
     res.status(500).json({
       success: false,
       message: "Sunucu hatası.",
@@ -194,8 +237,10 @@ const incPostView = async (req, res) => {
 module.exports = {
   newPost,
   getAllPosts,
+  postById,
   deletePost,
   updatePost,
-  postById,
   incPostView,
+  incPostLike,
+  decPostLike,
 };

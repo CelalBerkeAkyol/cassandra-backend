@@ -18,8 +18,8 @@ const getPostsByCategoriesName = async (req, res) => {
       console.info(
         `getPostsByCategoriesName: ${categoryName} kategorisinde post bulunamadı.`
       );
-      return res.status(200).json({
-        success: true,
+      return res.status(404).json({
+        success: false,
         message: "Bu kategoriye ait herhangi bir post bulunmamaktadır.",
       });
     }
