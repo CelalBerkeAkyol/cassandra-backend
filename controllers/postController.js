@@ -184,14 +184,45 @@ const incPostView = async (req, res) => {
   }
 };
 
-// Post beğeni sayısını artırma
+// controllers/postController.js
 const incPostLike = async (req, res) => {
   console.info(
     "incPostLike: Post beğeni artırma işlemi başladı, ID:",
     req.post._id
   );
+
   try {
-    req.post.likes = (req.post.likes || 0) + 1;
+    const userId = req.user.id; // auth middleware ile gelen kullanıcı ID
+
+    // Eğer kullanıcı zaten dislikedBy listesindeyse => downvote'u geri çek
+    const wasDisliked = req.post.dislikedBy.some(
+      (dislikedUserId) => dislikedUserId.toString() === userId.toString()
+    );
+    if (wasDisliked) {
+      // dislikedBy'dan çıkar
+      req.post.dislikedBy = req.post.dislikedBy.filter(
+        (dislikedUserId) => dislikedUserId.toString() !== userId.toString()
+      );
+      // dislikes sayısını 1 azalt
+      req.post.dislikes = Math.max(0, req.post.dislikes - 1);
+    }
+
+    // Şimdi bu kullanıcı zaten likedBy’da mı?
+    const hasLiked = req.post.likedBy.some(
+      (likedUserId) => likedUserId.toString() === userId.toString()
+    );
+    if (hasLiked) {
+      // Zaten beğenmiş -> tekrar beğenmesine gerek yok
+      return res.status(400).json({
+        success: false,
+        message: "Bu postu zaten beğendiniz.",
+      });
+    }
+
+    // Kullanıcıyı likedBy dizisine ekleyip likes’ı artır
+    req.post.likedBy.push(userId);
+    req.post.likes += 1;
+
     const updatedPost = await req.post.save();
 
     console.info(
@@ -209,19 +240,45 @@ const incPostLike = async (req, res) => {
   }
 };
 
-// Post beğeni sayısını azaltma
 const decPostLike = async (req, res) => {
-  console.info(
-    "decPostLike: Post beğeni azaltma işlemi başladı, ID:",
-    req.post._id
-  );
+  console.info("decPostLike: Downvote işlemi başladı, ID:", req.post._id);
+
   try {
-    req.post.likes = (req.post.likes || 0) - 1;
+    const userId = req.user.id;
+
+    // Eğer kullanıcı daha önce like yapmışsa => upvote'u geri çek
+    const wasLiked = req.post.likedBy.some(
+      (likedUserId) => likedUserId.toString() === userId.toString()
+    );
+    if (wasLiked) {
+      // likedBy'dan çıkar
+      req.post.likedBy = req.post.likedBy.filter(
+        (likedUserId) => likedUserId.toString() !== userId.toString()
+      );
+      // likes sayısını 1 azalt
+      req.post.likes = Math.max(0, req.post.likes - 1);
+    }
+
+    // Bu kullanıcı zaten dislikedBy'da mı?
+    const hasDownvoted = req.post.dislikedBy.some(
+      (dislikedUserId) => dislikedUserId.toString() === userId.toString()
+    );
+    if (hasDownvoted) {
+      return res.status(400).json({
+        success: false,
+        message: "Bu postu zaten downvote ettiniz.",
+      });
+    }
+
+    // Kullanıcıyı dislikedBy dizisine ekleyip dislikes’ı artır
+    req.post.dislikedBy.push(userId);
+    req.post.dislikes += 1;
+
     const updatedPost = await req.post.save();
 
     console.info(
-      "decPostLike: Post beğeni sayısı azaltıldı, yeni değer:",
-      updatedPost.likes
+      "decPostLike: Downvote işlemi başarılı, yeni değer:",
+      updatedPost.dislikes
     );
     res.status(200).json({ success: true, data: updatedPost });
   } catch (error) {

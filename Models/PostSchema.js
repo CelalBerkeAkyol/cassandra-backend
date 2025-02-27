@@ -52,10 +52,28 @@ const postSchema = new mongoose.Schema(
       type: Number,
       default: 0, // Başlangıç değeri 0
     },
+    // Beğeniler
     likes: {
       type: Number,
-      default: 0, // Başlangıç değeri 0
+      default: 0,
     },
+    likedBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    // Downvote için:
+    dislikes: {
+      type: Number,
+      default: 0,
+    },
+    dislikedBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
     createdAt: {
       type: Date,
       default: Date.now,
