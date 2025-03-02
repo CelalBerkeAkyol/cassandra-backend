@@ -7,7 +7,12 @@ const User = require("../Models/UserSchema");
 const generateTokens = (user) => {
   console.info("generateTokens: Token oluşturma başladı.");
   const accessToken = jwt.sign(
-    { id: user._id, username: user.userName, role: user.role },
+    {
+      id: user._id,
+      username: user.userName,
+      role: user.role,
+      email: user.email,
+    },
     process.env.JWT_SECRET,
     { expiresIn: "60m" } // Access Token kısa süreli
   );
@@ -24,18 +29,18 @@ const generateTokens = (user) => {
 
 const login = async (req, res) => {
   console.info("login: Giriş işlemi başladı.");
-  const { username, password } = req.body;
+  const { email, password } = req.body;
 
   try {
-    const user = await User.findOne({ userName: username });
+    const user = await User.findOne({ email: email });
     if (!user) {
-      console.warn("login: Kullanıcı bulunamadı:", username);
+      console.warn("login: Kullanıcı bulunamadı:", email);
       return res.status(404).json({ message: "Kullanıcı bulunamadı" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      console.warn("login: Şifre eşleşmedi:", username);
+      console.warn("login: Şifre eşleşmedi:", email);
       return res.status(401).json({ message: "Geçersiz şifre" });
     }
 
@@ -60,8 +65,8 @@ const login = async (req, res) => {
 
     console.info("login: Giriş başarılı, tokenlar oluşturuldu.");
     res.status(200).json({
-      userName: user.userName,
-      userRole: user.role,
+      email: user.email,
+      name: user.fullName,
       message: "Giriş başarılı",
     });
   } catch (error) {
@@ -69,25 +74,47 @@ const login = async (req, res) => {
     res.status(500).json({ message: "Sunucu hatası" });
   }
 };
-
-const createUser = async (req, res, next) => {
-  console.info("createUser: Kullanıcı oluşturma işlemi başladı.");
-  const { userName, password } = req.body;
-
+const register = async (req, res, next) => {
+  const { userName, email, password } = req.body;
   try {
-    const existingUser = await User.findOne({ userName });
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
-      console.warn("createUser: Aynı kullanıcı zaten mevcut:", userName);
+      console.warn("createUser: Aynı kullanıcı zaten mevcut:", email);
       return res
         .status(400)
         .json({ message: "Bu email ile kayıtlı bir kullanıcı zaten var." });
     }
 
-    const newUser = await User.create({ userName, password });
-    console.info("createUser: Yeni kullanıcı oluşturuldu:", newUser.userName);
+    const newUser = await User.create({ userName, email, password });
+    console.info("createUser: Yeni kullanıcı oluşturuldu:", newUser.email);
     res.status(201).json({
       message: "Yeni kullanıcı başarıyla oluşturuldu.",
-      user: newUser.userName,
+      user: newUser.email,
+    });
+  } catch (error) {
+    console.error("createUser hata:", error);
+    return next(error);
+  }
+};
+// TODO -> delete duplicated function
+const createUser = async (req, res, next) => {
+  console.info("createUser: Kullanıcı oluşturma işlemi başladı.");
+  const { email, password } = req.body;
+
+  try {
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      console.warn("createUser: Aynı kullanıcı zaten mevcut:", email);
+      return res
+        .status(400)
+        .json({ message: "Bu email ile kayıtlı bir kullanıcı zaten var." });
+    }
+
+    const newUser = await User.create({ email, password });
+    console.info("createUser: Yeni kullanıcı oluşturuldu:", newUser.email);
+    res.status(201).json({
+      message: "Yeni kullanıcı başarıyla oluşturuldu.",
+      user: newUser.email,
     });
   } catch (error) {
     console.error("createUser hata:", error);
@@ -180,4 +207,5 @@ module.exports = {
   refreshAccessToken,
   verifyToken,
   logout,
+  register,
 };
