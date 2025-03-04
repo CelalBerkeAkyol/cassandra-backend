@@ -14,7 +14,7 @@ const generateTokens = (user) => {
       email: user.email,
     },
     process.env.JWT_SECRET,
-    { expiresIn: "60m" } // Access Token kısa süreli
+    { expiresIn: "24h" } // Access Token 24 saat geçerli
   );
 
   const refreshToken = jwt.sign(
@@ -54,7 +54,7 @@ const login = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "Lax",
-      maxAge: 24 * 60 * 60 * 1000, // 1 gün
+      maxAge: 24 * 60 * 60 * 1000, // 24 saat
     });
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
@@ -64,14 +64,53 @@ const login = async (req, res) => {
     });
 
     console.info("login: Giriş başarılı, tokenlar oluşturuldu.");
+    // API yanıtını, kullanıcı bilgilerini içerecek şekilde düzenledik.
     res.status(200).json({
-      email: user.email,
-      name: user.fullName,
+      user: {
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        username: user.userName,
+      },
       message: "Giriş başarılı",
     });
   } catch (error) {
     console.error("login hata:", error);
     res.status(500).json({ message: "Sunucu hatası" });
+  }
+};
+
+const logout = async (req, res) => {
+  console.info("logout: Çıkış işlemi başladı.");
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      console.warn("logout: Kullanıcı bulunamadı.");
+      return res.status(404).json({ message: "Kullanıcı bulunamadı" });
+    }
+
+    user.refreshToken = null;
+    await user.save();
+
+    // Cookie temizleme işlemi: Aynı seçeneklerle temizleyelim.
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+      path: "/",
+    });
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+      path: "/",
+    });
+
+    console.info("logout: Kullanıcı çıkışı başarıyla tamamlandı.");
+    res.status(200).json({ message: "Çıkış yapıldı." });
+  } catch (error) {
+    console.error("logout hata:", error);
+    res.status(500).json({ message: "Sunucu hatası." });
   }
 };
 const register = async (req, res, next) => {
@@ -175,29 +214,6 @@ const verifyToken = async (req, res) => {
   } catch (error) {
     console.error("verifyToken hata:", error);
     return res.status(401).json({ valid: false, error: "Geçersiz token." });
-  }
-};
-
-const logout = async (req, res) => {
-  console.info("logout: Çıkış işlemi başladı.");
-  try {
-    const user = await User.findById(req.user.id);
-    if (!user) {
-      console.warn("logout: Kullanıcı bulunamadı.");
-      return res.status(404).json({ message: "Kullanıcı bulunamadı" });
-    }
-
-    user.refreshToken = null;
-    await user.save();
-
-    res.clearCookie("token");
-    res.clearCookie("refreshToken");
-
-    console.info("logout: Kullanıcı çıkışı başarıyla tamamlandı.");
-    res.status(200).json({ message: "Çıkış yapıldı." });
-  } catch (error) {
-    console.error("logout hata:", error);
-    res.status(500).json({ message: "Sunucu hatası." });
   }
 };
 
