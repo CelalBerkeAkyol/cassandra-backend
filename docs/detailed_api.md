@@ -1,12 +1,16 @@
 # Detailed Endpoint Documentation
 
-if you want to summary of this project and routes on summary.md
+If you want a summary of this project and routes, please check `summary.md`
+
+---
 
 ## Auth Endpoints
 
 ### Register User
 
-- POST /auth/register
+- **POST /auth/register**
+
+#### Request Body
 
 ```json
 {
@@ -16,9 +20,20 @@ if you want to summary of this project and routes on summary.md
 }
 ```
 
+#### Success Response
+
+```json
+{
+  "message": "User registered successfully",
+  "user": "john@example.com"
+}
+```
+
 ### Login User
 
-- POST /auth/login
+- **POST /auth/login**
+
+#### Request Body
 
 ```json
 {
@@ -27,29 +42,87 @@ if you want to summary of this project and routes on summary.md
 }
 ```
 
+#### Success Response
+
+```json
+{
+  "user": {
+    "email": "john@example.com",
+    "fullName": "John Doe",
+    "role": "user",
+    "username": "john_doe"
+  },
+  "message": "Login successful"
+}
+```
+
 ### Logout User
 
-- POST /auth/logout
+- **POST /auth/logout**
 
-Requires valid access token.
+#### Description
+
+Requires valid access token. Clears session cookies.
+
+#### Success Response
+
+```json
+{
+  "message": "Logout successful"
+}
+```
 
 ### Refresh Access Token
 
 - **POST /auth/refresh-token**
 
-  Requires valid refresh token.
+#### Description
+
+Requires valid refresh token.
+
+#### Success Response
+
+```json
+{
+  "message": "New Access Token created"
+}
+```
 
 ### Verify Token
 
 - **POST /auth/verify-token**
 
-  Validates current access token.
+#### Description
+
+Validates current access token.
+
+#### Success Response
+
+```json
+{
+  "valid": true,
+  "user": {
+    "id": "user_id",
+    "username": "john_doe",
+    "role": "user",
+    "email": "john@example.com"
+  }
+}
+```
 
 ### Admin Test
 
 - **GET /auth/admin**
 
-  Requires admin privileges.
+#### Description
+
+Requires admin privileges.
+
+#### Success Response
+
+```
+Welcome Admin! You have access.
+```
 
 ---
 
@@ -59,23 +132,59 @@ Requires valid access token.
 
 - **GET /user/:id**
 
+#### Success Response
+
+```json
+{
+  "userName": "john_doe",
+  "role": "user",
+  "createdAt": "2025-03-05T12:34:56.789Z"
+}
+```
+
 ### Delete User by ID
 
 - **DELETE /user/:id**
 
+#### Description
+
 Requires admin privileges.
+
+#### Success Response
+
+```
+User has been deleted successfully
+```
 
 ### List All Users
 
 - **GET /user/**
 
+#### Description
+
 Requires admin privileges.
+
+#### Success Response
+
+```json
+[
+  {
+    "userName": "john_doe",
+    "email": "john@example.com",
+    "role": "user"
+  }
+]
+```
 
 ### Delete All Users
 
 - **DELETE /user/**
 
+#### Description
+
 Requires admin privileges.
+
+#### Request Body
 
 ```json
 {
@@ -83,16 +192,41 @@ Requires admin privileges.
 }
 ```
 
+#### Success Response
+
+```json
+{
+  "success": true,
+  "message": "All users deleted successfully"
+}
+```
+
 ### Update User by Username
 
 - **PUT /user/:username**
 
+#### Description
+
 Requires admin privileges.
+
+#### Request Body
 
 ```json
 {
   "role": "author",
   "bio": "Updated bio"
+}
+```
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "role": "author",
+    "bio": "Updated bio"
+  }
 }
 ```
 
@@ -103,13 +237,33 @@ Requires admin privileges.
 ### Get All Posts
 
 - **GET /posts**
-  Optional query params: `page`, `limit`
+
+#### Optional Query Params
+
+- `page`: Page number (default: 1)
+- `limit`: Items per page (default: 15)
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "count": 10,
+  "total": 50,
+  "pagination": { "next": { "page": 2, "limit": 15 } },
+  "data": []
+}
+```
 
 ### Create New Post
 
 - **POST /posts**
 
+#### Description
+
 Requires admin privileges.
+
+#### Request Body
 
 ```json
 {
@@ -119,32 +273,108 @@ Requires admin privileges.
 }
 ```
 
+#### Success Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "title": "New Post",
+    "content": "Post content",
+    "category": "tech"
+  }
+}
+```
+
 ### Get Post by ID
 
 - **GET /posts/one-post/:id**
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "post": {
+    "title": "Sample Post",
+    "content": "This is content",
+    "author": "john_doe"
+  }
+}
+```
 
 ### Update Post
 
 - **PUT /posts/:id**
 
+#### Description
+
 Requires admin privileges.
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "data": {}
+}
+```
 
 ### Delete Post
 
 - **DELETE /posts/:id**
-  Requires admin privileges.
+
+#### Description
+
+Requires admin privileges.
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "message": "Post deleted successfully"
+}
+```
 
 ### Increment Post Views
 
 - **PUT /posts/:id/view**
 
+#### Success Response
+
+```json
+{
+  "success": true,
+  "data": {}
+}
+```
+
 ### Upvote Post
 
 - **PUT /posts/:id/upvote**
 
+#### Success Response
+
+```json
+{
+  "success": true,
+  "data": {}
+}
+```
+
 ### Downvote Post
 
 - **PUT /posts/:id/downvote**
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "data": {}
+}
+```
 
 ---
 
@@ -154,9 +384,27 @@ Requires admin privileges.
 
 - **GET /category/:category**
 
+#### Success Response
+
+```json
+{
+  "success": true,
+  "posts": []
+}
+```
+
 ### Get All Categories
 
 - **GET /category/all-categories**
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "allCategory": ["tech", "finance"]
+}
+```
 
 ---
 
@@ -165,20 +413,54 @@ Requires admin privileges.
 ### List Images
 
 - **GET /images**
-  Optional query params: `page`, `limit`
+
+#### Optional Query Params
+
+- `page`: Page number (default: 1)
+- `limit`: Items per page (default: 9)
+
+#### Success Response
+
+```json
+{
+  "images": [],
+  "page": 1,
+  "totalPages": 5
+}
+```
 
 ### Upload Multiple Images
 
 - **POST /images/multiple**
-  Form data with multiple `image` files.
+
+#### Description
+
+Form data with multiple `image` files.
+
+#### Success Response
+
+```json
+{
+  "message": "Images uploaded successfully",
+  "images": []
+}
+```
 
 ### Delete Image by ID
 
 - **DELETE /images/:id**
 
+#### Success Response
+
+```json
+{
+  "message": "Image deleted successfully"
+}
+```
+
 ---
 
-## 6. Error Handling
+## Error Handling
 
 | Status Code               | Meaning                 |
 | ------------------------- | ----------------------- |
@@ -192,7 +474,7 @@ Requires admin privileges.
 
 ---
 
-## 7. Additional Notes
+## Additional Notes
 
 - Tokens: 24-hour access tokens, 7-day refresh tokens.
 - Admin routes: `/posts`, `/user` updates/deletes require admin role.
