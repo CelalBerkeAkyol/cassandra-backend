@@ -52,13 +52,13 @@ const login = async (req, res) => {
     // Tokenlar HTTP-Only cookie olarak gönderiliyor
     res.cookie("token", accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: false,
       sameSite: "Lax",
       maxAge: 24 * 60 * 60 * 1000, // 24 saat
     });
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: false,
       sameSite: "Lax",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 gün
     });
@@ -118,45 +118,20 @@ const register = async (req, res, next) => {
   try {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      console.warn("createUser: Aynı kullanıcı zaten mevcut:", email);
+      console.warn("register: Aynı kullanıcı zaten mevcut:", email);
       return res
         .status(400)
         .json({ message: "Bu email ile kayıtlı bir kullanıcı zaten var." });
     }
 
     const newUser = await User.create({ userName, email, password });
-    console.info("createUser: Yeni kullanıcı oluşturuldu:", newUser.email);
+    console.info("register: Yeni kullanıcı oluşturuldu:", newUser.email);
     res.status(201).json({
       message: "Yeni kullanıcı başarıyla oluşturuldu.",
       user: newUser.email,
     });
   } catch (error) {
-    console.error("createUser hata:", error);
-    return next(error);
-  }
-};
-// TODO -> delete duplicated function
-const createUser = async (req, res, next) => {
-  console.info("createUser: Kullanıcı oluşturma işlemi başladı.");
-  const { email, password } = req.body;
-
-  try {
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      console.warn("createUser: Aynı kullanıcı zaten mevcut:", email);
-      return res
-        .status(400)
-        .json({ message: "Bu email ile kayıtlı bir kullanıcı zaten var." });
-    }
-
-    const newUser = await User.create({ email, password });
-    console.info("createUser: Yeni kullanıcı oluşturuldu:", newUser.email);
-    res.status(201).json({
-      message: "Yeni kullanıcı başarıyla oluşturuldu.",
-      user: newUser.email,
-    });
-  } catch (error) {
-    console.error("createUser hata:", error);
+    console.error("register hata:", error);
     return next(error);
   }
 };
@@ -219,7 +194,6 @@ const verifyToken = async (req, res) => {
 
 module.exports = {
   login,
-  createUser,
   refreshAccessToken,
   verifyToken,
   logout,

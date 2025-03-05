@@ -5,7 +5,6 @@ const { getAccessToRoute, isAdmin } = require("../middlewares/authMiddleware");
 
 const {
   login,
-  createUser,
   refreshAccessToken,
   verifyToken,
   logout,
@@ -13,9 +12,7 @@ const {
 } = require("../controllers/authController"); // token burada oluşturuluyor
 
 // admin tarafından post isteği ile veri tabanına kullanıcı ekleme
-router.post("/create-user", getAccessToRoute, isAdmin, createUser);
 router.post("/register", register);
-
 router.post("/login", login);
 router.post("/logout", getAccessToRoute, logout);
 
