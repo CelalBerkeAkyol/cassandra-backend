@@ -7,9 +7,14 @@ const User = require("../Models/UserSchema");
 const generateTokens = (user) => {
   console.info("generateTokens: Token oluşturma başladı.");
   const accessToken = jwt.sign(
-    { id: user._id, username: user.userName, role: user.role },
+    {
+      id: user._id,
+      username: user.userName,
+      role: user.role,
+      email: user.email,
+    },
     process.env.JWT_SECRET,
-    { expiresIn: "60m" } // Access Token kısa süreli
+    { expiresIn: "24h" } // Access Token 24 saat geçerli
   );
 
   const refreshToken = jwt.sign(
@@ -24,18 +29,18 @@ const generateTokens = (user) => {
 
 const login = async (req, res) => {
   console.info("login: Giriş işlemi başladı.");
-  const { username, password } = req.body;
+  const { email, password } = req.body;
 
   try {
-    const user = await User.findOne({ userName: username });
+    const user = await User.findOne({ email: email });
     if (!user) {
-      console.warn("login: Kullanıcı bulunamadı:", username);
+      console.warn("login: Kullanıcı bulunamadı:", email);
       return res.status(404).json({ message: "Kullanıcı bulunamadı" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      console.warn("login: Şifre eşleşmedi:", username);
+      console.warn("login: Şifre eşleşmedi:", email);
       return res.status(401).json({ message: "Geçersiz şifre" });
     }
 
@@ -47,21 +52,26 @@ const login = async (req, res) => {
     // Tokenlar HTTP-Only cookie olarak gönderiliyor
     res.cookie("token", accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: false,
       sameSite: "Lax",
-      maxAge: 24 * 60 * 60 * 1000, // 1 gün
+      maxAge: 24 * 60 * 60 * 1000, // 24 saat
     });
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: false,
       sameSite: "Lax",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 gün
     });
 
     console.info("login: Giriş başarılı, tokenlar oluşturuldu.");
+    // API yanıtını, kullanıcı bilgilerini içerecek şekilde düzenledik.
     res.status(200).json({
-      userName: user.userName,
-      userRole: user.role,
+      user: {
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        username: user.userName,
+      },
       message: "Giriş başarılı",
     });
   } catch (error) {
@@ -70,27 +80,58 @@ const login = async (req, res) => {
   }
 };
 
-const createUser = async (req, res, next) => {
-  console.info("createUser: Kullanıcı oluşturma işlemi başladı.");
-  const { userName, password } = req.body;
-
+const logout = async (req, res) => {
+  console.info("logout: Çıkış işlemi başladı.");
   try {
-    const existingUser = await User.findOne({ userName });
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      console.warn("logout: Kullanıcı bulunamadı.");
+      return res.status(404).json({ message: "Kullanıcı bulunamadı" });
+    }
+
+    user.refreshToken = null;
+    await user.save();
+
+    // Cookie temizleme işlemi: Aynı seçeneklerle temizleyelim.
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+      path: "/",
+    });
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+      path: "/",
+    });
+
+    console.info("logout: Kullanıcı çıkışı başarıyla tamamlandı.");
+    res.status(200).json({ message: "Çıkış yapıldı." });
+  } catch (error) {
+    console.error("logout hata:", error);
+    res.status(500).json({ message: "Sunucu hatası." });
+  }
+};
+const register = async (req, res, next) => {
+  const { userName, email, password } = req.body;
+  try {
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
-      console.warn("createUser: Aynı kullanıcı zaten mevcut:", userName);
+      console.warn("register: Aynı kullanıcı zaten mevcut:", email);
       return res
         .status(400)
         .json({ message: "Bu email ile kayıtlı bir kullanıcı zaten var." });
     }
 
-    const newUser = await User.create({ userName, password });
-    console.info("createUser: Yeni kullanıcı oluşturuldu:", newUser.userName);
+    const newUser = await User.create({ userName, email, password });
+    console.info("register: Yeni kullanıcı oluşturuldu:", newUser.email);
     res.status(201).json({
       message: "Yeni kullanıcı başarıyla oluşturuldu.",
-      user: newUser.userName,
+      user: newUser.email,
     });
   } catch (error) {
-    console.error("createUser hata:", error);
+    console.error("register hata:", error);
     return next(error);
   }
 };
@@ -151,33 +192,10 @@ const verifyToken = async (req, res) => {
   }
 };
 
-const logout = async (req, res) => {
-  console.info("logout: Çıkış işlemi başladı.");
-  try {
-    const user = await User.findById(req.user.id);
-    if (!user) {
-      console.warn("logout: Kullanıcı bulunamadı.");
-      return res.status(404).json({ message: "Kullanıcı bulunamadı" });
-    }
-
-    user.refreshToken = null;
-    await user.save();
-
-    res.clearCookie("token");
-    res.clearCookie("refreshToken");
-
-    console.info("logout: Kullanıcı çıkışı başarıyla tamamlandı.");
-    res.status(200).json({ message: "Çıkış yapıldı." });
-  } catch (error) {
-    console.error("logout hata:", error);
-    res.status(500).json({ message: "Sunucu hatası." });
-  }
-};
-
 module.exports = {
   login,
-  createUser,
   refreshAccessToken,
   verifyToken,
   logout,
+  register,
 };

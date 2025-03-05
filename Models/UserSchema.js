@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
-// Kullanıcı şeması
 const userSchema = new mongoose.Schema(
   {
     userName: {
@@ -10,23 +9,64 @@ const userSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
+    fullName: {
+      type: String,
+      trim: true,
+    },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      lowercase: true,
+    },
     password: {
       type: String,
       required: true,
     },
+    bio: {
+      type: String,
+      maxlength: 500, // Kullanıcı biyografisi
+    },
+    profileImage: {
+      type: String, // Bir URL olabilir
+      default: "https://example.com/default-profile.png", // Varsayılan bir fotoğraf
+    },
+    occupation: {
+      type: String,
+      maxlength: 100,
+    },
+    website: {
+      type: String,
+    },
+    socialLinks: {
+      twitter: { type: String },
+      linkedin: { type: String },
+      github: { type: String },
+    },
     role: {
       type: String,
-      enum: ["author", "admin"],
-      default: "author",
+      enum: ["user", "author", "admin"],
+      default: "user",
+    },
+    isVerified: {
+      type: Boolean,
+      default: false, // E-posta doğrulandı mı
+    },
+
+    lastLogin: {
+      type: Date,
     },
     refreshToken: {
       type: String,
-      default: null, // Varsayılan olarak null
+      default: null,
+    },
+    deletedAt: {
+      type: Date,
+      default: null, // Soft delete için kullanılabilir
     },
   },
-  {
-    timestamps: true, // createdAt ve updatedAt alanlarını otomatik oluşturur
-  }
+  { timestamps: true }
 );
 
 // ------ Şema Fonksiyonları -------
