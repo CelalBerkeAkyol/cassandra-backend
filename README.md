@@ -4,9 +4,9 @@
 
 This project is a **blog backend API** designed to manage content related to **Data Science** and **Machine Learning**. Utilizing **RESTful API** architecture, it allows users to manage blog content, categorize posts, and leave comments.
 
-> **Note:** This project consists of **two components**:
+> **Note:** This project consists of **two repo**:
 >
-> - **Frontend**: [Data Science & ML Blog Frontend](https://github.com/username/data-science-ml-frontend)
+> - **Frontend**: [Data Science & ML Blog Frontend](https://github.com/CelalBerkeAkyol/Finance-blog-frontend)
 > - **Backend** (this repository): Provides API services.
 
 ---
