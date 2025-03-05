@@ -4,18 +4,18 @@ const Post = require("../Models/PostSchema");
 const getPostsByCategoriesName = async (req, res) => {
   const categoryName = req.params.category;
   console.info(
-    `auth/getPostsByCategoriesName: ${categoryName} kategorisindeki postlar aranıyor.`
+    `category/getPostsByCategoriesName: ${categoryName} kategorisindeki postlar aranıyor.`
   );
 
   try {
     const posts = await Post.find({ category: categoryName })
-      .populate("author", "userName role profileImage")
+      .populate("categoryor", "userName role profileImage")
       .sort({ createdAt: -1 })
       .exec();
 
     if (!posts || posts.length === 0) {
       console.info(
-        `auth/getPostsByCategoriesName: ${categoryName} kategorisinde post bulunamadı.`
+        `category/getPostsByCategoriesName: ${categoryName} kategorisinde post bulunamadı.`
       );
       return res.status(404).json({
         success: false,
@@ -24,7 +24,7 @@ const getPostsByCategoriesName = async (req, res) => {
     }
 
     console.info(
-      `auth/getPostsByCategoriesName: ${categoryName} kategorisinde ${posts.length} post getirildi.`
+      `category/getPostsByCategoriesName: ${categoryName} kategorisinde ${posts.length} post getirildi.`
     );
     return res.status(200).json({
       success: true,
@@ -32,7 +32,7 @@ const getPostsByCategoriesName = async (req, res) => {
       posts,
     });
   } catch (error) {
-    console.error("auth/getPostsByCategoriesName hata:", error);
+    console.error("category/getPostsByCategoriesName hata:", error);
     return res.status(500).json({
       success: false,
       message: "Veritabanında bir hata oluştu.",
@@ -43,18 +43,18 @@ const getPostsByCategoriesName = async (req, res) => {
 
 // Tüm kategorileri döndürür (Post modelindeki enum değerleri üzerinden)
 const getAllCategory = async (req, res) => {
-  console.info("auth/getAllCategory: Tüm kategoriler aranıyor.");
+  console.info("category/getAllCategory: Tüm kategoriler aranıyor.");
   try {
     const allCategory = Post.schema.path("category").enumValues;
 
-    console.info("auth/getAllCategory: Kategoriler başarıyla getirildi.");
+    console.info("category/getAllCategory: Kategoriler başarıyla getirildi.");
     res.status(200).json({
       success: true,
       message: "Tüm kategoriler başarıyla getirildi.",
       allCategory,
     });
   } catch (error) {
-    console.error("auth/getAllCategory hata:", error);
+    console.error("category/getAllCategory hata:", error);
     res.status(500).json({
       success: false,
       message: "Kategoriler getirilemedi.",

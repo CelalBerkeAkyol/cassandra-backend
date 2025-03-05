@@ -2,10 +2,10 @@ const Image = require("../Models/ImageSchema");
 
 // Çoklu görsel yükleme (altText zorunlu değil)
 exports.uploadImages = async (req, res) => {
-  console.info("auth/uploadImages: Görsel yükleme işlemi başladı.");
+  console.info("image/uploadImages: Görsel yükleme işlemi başladı.");
   try {
     if (!req.files || req.files.length === 0) {
-      console.warn("auth/uploadImages: Görsel dosyası bulunamadı.");
+      console.warn("image/uploadImages: Görsel dosyası bulunamadı.");
       return res
         .status(400)
         .json({ success: false, message: "Görsel dosyası bulunamadı." });
@@ -29,7 +29,7 @@ exports.uploadImages = async (req, res) => {
     }
 
     console.info(
-      `auth/uploadImages: ${uploadedImages.length} görsel başarıyla yüklendi.`
+      `image/uploadImages: ${uploadedImages.length} görsel başarıyla yüklendi.`
     );
     return res.status(201).json({
       success: true,
@@ -37,20 +37,18 @@ exports.uploadImages = async (req, res) => {
       images: uploadedImages,
     });
   } catch (error) {
-    console.error("auth/uploadImages hata:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: "Görseller yüklenirken bir hata oluştu.",
-        error: error.message,
-      });
+    console.error("image/uploadImages hata:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Görseller yüklenirken bir hata oluştu.",
+      error: error.message,
+    });
   }
 };
 
 // Görselleri sayfalama ile listeleme
 exports.getImages = async (req, res) => {
-  console.info("auth/getImages: Görseller listeleniyor.");
+  console.info("image/getImages: Görseller listeleniyor.");
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 9;
@@ -64,7 +62,7 @@ exports.getImages = async (req, res) => {
     const total = await Image.countDocuments();
     const totalPages = Math.ceil(total / limit);
 
-    console.info(`auth/getImages: ${images.length} görsel listelendi.`);
+    console.info(`image/getImages: ${images.length} görsel listelendi.`);
     return res.status(200).json({
       success: true,
       message: "Görseller başarıyla listelendi.",
@@ -74,45 +72,41 @@ exports.getImages = async (req, res) => {
       total,
     });
   } catch (error) {
-    console.error("auth/getImages hata:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: "Görseller listelenirken bir hata oluştu.",
-        error: error.message,
-      });
+    console.error("image/getImages hata:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Görseller listelenirken bir hata oluştu.",
+      error: error.message,
+    });
   }
 };
 
 // Görsel silme
 exports.deleteImage = async (req, res) => {
-  console.info("auth/deleteImage: Görsel silme işlemi başladı.");
+  console.info("image/deleteImage: Görsel silme işlemi başladı.");
   try {
     const { id } = req.params;
     const deletedImage = await Image.findByIdAndDelete(id);
 
     if (!deletedImage) {
-      console.warn(`auth/deleteImage: ID ${id} ile görsel bulunamadı.`);
+      console.warn(`image/deleteImage: ID ${id} ile görsel bulunamadı.`);
       return res
         .status(404)
         .json({ success: false, message: "Bu ID'li görsel bulunamadı." });
     }
 
-    console.info(`auth/deleteImage: ID ${id} ile görsel başarıyla silindi.`);
+    console.info(`image/deleteImage: ID ${id} ile görsel başarıyla silindi.`);
     return res.status(200).json({
       success: true,
       message: "Görsel başarıyla silindi.",
       image: deletedImage,
     });
   } catch (error) {
-    console.error("auth/deleteImage hata:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: "Görsel silinirken bir hata oluştu.",
-        error: error.message,
-      });
+    console.error("image/deleteImage hata:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Görsel silinirken bir hata oluştu.",
+      error: error.message,
+    });
   }
 };
