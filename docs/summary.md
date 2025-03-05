@@ -88,3 +88,7 @@ https://localhost:5173/blog
 | GET    | /images          | List images (paginated) | No            | No         |
 | POST   | /images/multiple | Upload multiple images  | No            | No         |
 | DELETE | /images/:id      | Delete image by ID      | No            | No         |
+
+## Additional Doc
+
+if you want to learn more about api check : [Detailed API](./detailed_api.md)
