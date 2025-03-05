@@ -22,7 +22,12 @@ const generateTokens = (user) => {
     { expiresIn: "7d" }
   );
 
-  console.info("auth/generateTokens: Tokenlar oluşturuldu.");
+  console.info(
+    "auth/generateTokens: Tokenlar oluşturuldu.",
+    accessToken,
+    refreshToken
+  );
+
   return { accessToken, refreshToken };
 };
 
@@ -124,31 +129,29 @@ const register = async (req, res) => {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       console.warn("auth/register: Aynı kullanıcı zaten mevcut:", email);
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Bu email ile kayıtlı bir kullanıcı zaten var.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Bu email ile kayıtlı bir kullanıcı zaten var.",
+      });
     }
 
     const newUser = await User.create({ userName, email, password });
     console.info("auth/register: Yeni kullanıcı oluşturuldu:", newUser.email);
-    res
-      .status(201)
-      .json({
-        success: true,
-        message: "Yeni kullanıcı başarıyla oluşturuldu.",
-        user: newUser.email,
-      });
+    res.status(201).json({
+      success: true,
+      message: "Yeni kullanıcı başarıyla oluşturuldu.",
+      user: {
+        id: newUser._id,
+        userName: newUser.userName,
+        role: newUser.role,
+      },
+    });
   } catch (error) {
     console.error("auth/register hata:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Sunucu hatası, lütfen iletişime geçiniz.",
-      });
+    res.status(500).json({
+      success: false,
+      message: "Sunucu hatası, lütfen iletişime geçiniz.",
+    });
   }
 };
 
@@ -183,19 +186,19 @@ const refreshAccessToken = async (req, res) => {
       secure: process.env.NODE_ENV === "production",
       maxAge: 15 * 60 * 1000,
     });
-
+    // To-Do acces tokenları response olarak döndürme
     console.info("auth/refreshAccessToken: Yeni access token oluşturuldu.");
-    res
-      .status(200)
-      .json({ success: true, message: "Yeni Access Token oluşturuldu." });
+    res.status(200).json({
+      success: true,
+      message: "Yeni Access Token oluşturuldu.",
+      token: newAccessToken,
+    });
   } catch (error) {
     console.error("auth/refreshAccessToken hata:", error);
-    res
-      .status(403)
-      .json({
-        success: false,
-        message: "Geçersiz veya süresi dolmuş Refresh Token.",
-      });
+    res.status(403).json({
+      success: false,
+      message: "Geçersiz veya süresi dolmuş Refresh Token.",
+    });
   }
 };
 
@@ -213,7 +216,9 @@ const verifyToken = async (req, res) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.info("auth/verifyToken: Token doğrulandı.", decoded);
-    res.status(200).json({ success: true, valid: true, user: decoded });
+    res
+      .status(200)
+      .json({ success: true, valid: true, user: decoded, token: token });
   } catch (error) {
     console.error("auth/verifyToken hata:", error);
     res

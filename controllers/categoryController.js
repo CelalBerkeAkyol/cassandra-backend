@@ -9,7 +9,7 @@ const getPostsByCategoriesName = async (req, res) => {
 
   try {
     const posts = await Post.find({ category: categoryName })
-      .populate("categoryor", "userName role profileImage")
+      .populate("category", "userName role profileImage")
       .sort({ createdAt: -1 })
       .exec();
 
