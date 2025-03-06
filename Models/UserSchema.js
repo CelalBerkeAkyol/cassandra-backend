@@ -30,7 +30,8 @@ const userSchema = new mongoose.Schema(
     },
     profileImage: {
       type: String, // Bir URL olabilir
-      default: "https://example.com/default-profile.png", // Varsayılan bir fotoğraf
+      default:
+        "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y", // Yeni varsayılan fotoğraf
     },
     occupation: {
       type: String,

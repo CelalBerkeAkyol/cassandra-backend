@@ -136,10 +136,37 @@ const register = async (req, res) => {
     }
 
     const newUser = await User.create({ userName, email, password });
-    console.info("auth/register: Yeni kullanıcı oluşturuldu:", newUser.email);
+
+    // Kullanıcı oluşturulduktan sonra token üret
+    const { accessToken, refreshToken } = generateTokens(newUser);
+
+    // Refresh token'ı veritabanına kaydet
+    newUser.refreshToken = refreshToken;
+    await newUser.save();
+
+    // Token'ları cookie'ye yaz
+    res.cookie("token", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    console.info(
+      "auth/register: Yeni kullanıcı oluşturuldu ve token'lar ayarlandı:",
+      newUser.email
+    );
+
     res.status(201).json({
       success: true,
-      message: "Yeni kullanıcı başarıyla oluşturuldu.",
+      message: "Yeni kullanıcı başarıyla oluşturuldu ve oturum açıldı.",
       user: {
         id: newUser._id,
         userName: newUser.userName,
