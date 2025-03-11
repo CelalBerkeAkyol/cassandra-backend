@@ -65,11 +65,31 @@ const getUserByUserNameFromDatabase = async (req, res) => {
 const getUserByID = async (req, res) => {
   console.info("user/getUserByID: Kullanıcı ID ile aranıyor.");
   const id = req.params.id;
+
+  if (!id) {
+    console.error("user/getUserByID: ID sağlanmadı.");
+    return res.status(400).json({
+      success: false,
+      message: "Kullanıcı ID'si gereklidir.",
+    });
+  }
+
   try {
+    // Geçerli bir MongoDB ObjectId kontrolü
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      console.error("user/getUserByID: Geçersiz ID formatı:", id);
+      return res.status(400).json({
+        success: false,
+        message: "Geçersiz kullanıcı ID formatı.",
+      });
+    }
+
+    // Daha fazla kullanıcı bilgisi getirmek için select kısmını güncelliyoruz
     const bilgiler = await User.findById(
       { _id: id },
-      "userName role createdAt"
+      "userName fullName email bio profileImage occupation website socialLinks role isVerified createdAt"
     );
+
     if (!bilgiler) {
       console.info("user/getUserByID: Kullanıcı bulunamadı, ID:", id);
       return res
@@ -80,7 +100,7 @@ const getUserByID = async (req, res) => {
     console.info("user/getUserByID: Kullanıcı getirildi, ID:", id);
     res.status(200).json({
       success: true,
-      message: "Bireysel kullanıcı bilgileriniz",
+      message: "Kullanıcı bilgileri",
       data: bilgiler,
     });
   } catch (error) {
@@ -186,11 +206,29 @@ const updateUserFromDatabase = async (req, res) => {
   );
   const username = req.params.username;
   const updatedData = req.body;
+
+  // Güvenlik için şifre alanını kaldır
+  if (updatedData.password) {
+    delete updatedData.password;
+  }
+
+  // Güvenlik için rol alanını kaldır (rol değişikliği sadece updateUserRole ile yapılabilir)
+  if (updatedData.role) {
+    delete updatedData.role;
+  }
+
+  // Güvenlik için email değişikliğini engelle
+  if (updatedData.email) {
+    delete updatedData.email;
+  }
+
   try {
     const updatedUser = await User.findOneAndUpdate(
       { userName: username },
       updatedData,
       { new: true, runValidators: true }
+    ).select(
+      "userName fullName email bio profileImage occupation website socialLinks role isVerified createdAt"
     );
 
     if (!updatedUser) {
@@ -200,7 +238,7 @@ const updateUserFromDatabase = async (req, res) => {
       );
       return res
         .status(404)
-        .json({ success: false, message: "User not found" });
+        .json({ success: false, message: "Kullanıcı bulunamadı" });
     }
 
     console.info(
