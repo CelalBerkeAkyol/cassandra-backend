@@ -49,13 +49,11 @@ const getUserByUserNameFromDatabase = async (req, res) => {
       "user/getUserByUserNameFromDatabase: Kullanıcı getirildi:",
       username
     );
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Bireysel kullanıcı bilgileriniz",
-        data: bilgiler,
-      });
+    res.status(200).json({
+      success: true,
+      message: "Bireysel kullanıcı bilgileriniz",
+      data: bilgiler,
+    });
   } catch (error) {
     console.error("user/getUserByUserNameFromDatabase hata:", error);
     res
@@ -80,13 +78,11 @@ const getUserByID = async (req, res) => {
     }
 
     console.info("user/getUserByID: Kullanıcı getirildi, ID:", id);
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Bireysel kullanıcı bilgileriniz",
-        data: bilgiler,
-      });
+    res.status(200).json({
+      success: true,
+      message: "Bireysel kullanıcı bilgileriniz",
+      data: bilgiler,
+    });
   } catch (error) {
     console.error("user/getUserByID hata:", error);
     res
@@ -218,6 +214,70 @@ const updateUserFromDatabase = async (req, res) => {
   }
 };
 
+const updateUserRole = async (req, res) => {
+  console.info("user/updateUserRole: Kullanıcı rol güncelleme işlemi başladı.");
+  const userId = req.params.id;
+  const { role } = req.body;
+
+  if (!role) {
+    console.error("user/updateUserRole: Rol bilgisi sağlanmadı.");
+    return res.status(400).json({
+      success: false,
+      message: "Rol bilgisi gereklidir.",
+    });
+  }
+
+  // Geçerli rol kontrolü
+  const validRoles = ["user", "author", "admin"];
+  if (!validRoles.includes(role)) {
+    console.error("user/updateUserRole: Geçersiz rol:", role);
+    return res.status(400).json({
+      success: false,
+      message: "Geçersiz rol. Geçerli roller: user, author, admin",
+    });
+  }
+
+  try {
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { role },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedUser) {
+      console.info("user/updateUserRole: Kullanıcı bulunamadı, ID:", userId);
+      return res.status(404).json({
+        success: false,
+        message: "Kullanıcı bulunamadı.",
+      });
+    }
+
+    console.info(
+      "user/updateUserRole: Kullanıcı rolü güncellendi, ID:",
+      userId,
+      "Yeni rol:",
+      role
+    );
+    res.status(200).json({
+      success: true,
+      message: "Kullanıcı rolü başarıyla güncellendi.",
+      data: {
+        _id: updatedUser._id,
+        userName: updatedUser.userName,
+        email: updatedUser.email,
+        role: updatedUser.role,
+      },
+    });
+  } catch (error) {
+    console.error("user/updateUserRole hata:", error);
+    res.status(500).json({
+      success: false,
+      message: "Sunucu hatası",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   getAllUserFromDatabase,
   deleteAllUsersFromDatabase,
@@ -226,4 +286,5 @@ module.exports = {
   getUserByUserNameFromDatabase,
   getUserByID,
   deleteUserByID,
+  updateUserRole,
 };

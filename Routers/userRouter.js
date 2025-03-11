@@ -7,6 +7,7 @@ const {
 
   getUserByID,
   deleteUserByID,
+  updateUserRole,
 } = require("../controllers/userController.js");
 const {
   getAccessToRoute,
@@ -17,6 +18,7 @@ const {
 router.use(getAccessToRoute); // Tüm rotalarda erişim kontrolü
 router.get("/:id", getUserByID);
 router.delete("/:id", isAdmin, deleteUserByID); // Belirli kullanıcıyı silme (sadece admin)
+router.patch("/:id/role", isAdmin, updateUserRole); // Kullanıcı rolünü güncelleme (sadece admin)
 router
   .use(isAdmin)
   .route("/")
