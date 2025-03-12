@@ -204,8 +204,25 @@ const updateUserFromDatabase = async (req, res) => {
   console.info(
     "user/updateUserFromDatabase: Kullanıcı güncelleme işlemi başladı."
   );
-  const username = req.params.username;
+  const id = req.params.id;
   const updatedData = req.body;
+
+  if (!id) {
+    console.error("user/updateUserFromDatabase: ID sağlanmadı.");
+    return res.status(400).json({
+      success: false,
+      message: "Kullanıcı ID'si gereklidir.",
+    });
+  }
+
+  // Geçerli bir MongoDB ObjectId kontrolü
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    console.error("user/updateUserFromDatabase: Geçersiz ID formatı:", id);
+    return res.status(400).json({
+      success: false,
+      message: "Geçersiz kullanıcı ID formatı.",
+    });
+  }
 
   // Güvenlik için şifre alanını kaldır
   if (updatedData.password) {
@@ -223,28 +240,24 @@ const updateUserFromDatabase = async (req, res) => {
   }
 
   try {
-    const updatedUser = await User.findOneAndUpdate(
-      { userName: username },
-      updatedData,
-      { new: true, runValidators: true }
-    ).select(
+    const updatedUser = await User.findByIdAndUpdate(id, updatedData, {
+      new: true,
+      runValidators: true,
+    }).select(
       "userName fullName email bio profileImage occupation website socialLinks role isVerified createdAt"
     );
 
     if (!updatedUser) {
       console.info(
-        "user/updateUserFromDatabase: Kullanıcı bulunamadı:",
-        username
+        "user/updateUserFromDatabase: Kullanıcı bulunamadı, ID:",
+        id
       );
       return res
         .status(404)
         .json({ success: false, message: "Kullanıcı bulunamadı" });
     }
 
-    console.info(
-      "user/updateUserFromDatabase: Kullanıcı güncellendi:",
-      username
-    );
+    console.info("user/updateUserFromDatabase: Kullanıcı güncellendi, ID:", id);
     res.status(200).json({ success: true, data: updatedUser });
   } catch (error) {
     console.error("user/updateUserFromDatabase hata:", error);
