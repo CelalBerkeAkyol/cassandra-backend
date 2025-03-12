@@ -74,6 +74,7 @@ const login = async (req, res) => {
       success: true,
       message: "Giriş başarılı",
       user: {
+        id: user._id,
         email: user.email,
         fullName: user.fullName,
         role: user.role,
