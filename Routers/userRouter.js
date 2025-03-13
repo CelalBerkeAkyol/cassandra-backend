@@ -12,7 +12,7 @@ const {
 const {
   getAccessToRoute,
   isAdmin,
-  isAuthorOrAdmin,
+  isOwnerOrAdminForUser,
 } = require("../middlewares/authMiddleware.js"); // kullanıcı kontrolü burada yapılıyor
 
 // Ortak yol prefix'i kullanılarak rotalar birleştirildi
@@ -22,8 +22,7 @@ router.use(getAccessToRoute); // Tüm rotalarda erişim kontrolü
 router.get("/:id", getUserByID);
 
 // Kullanıcı güncelleme - kullanıcının kendisi veya admin yapabilir
-// Not: Burada isOwnerOrAdmin benzeri bir middleware kullanılabilir
-router.route("/:id").put(updateUserFromDatabase);
+router.route("/:id").put(isOwnerOrAdminForUser, updateUserFromDatabase);
 
 // Sadece admin erişebilen rotalar
 router.delete("/:id", isAdmin, deleteUserByID); // Belirli kullanıcıyı silme (sadece admin)

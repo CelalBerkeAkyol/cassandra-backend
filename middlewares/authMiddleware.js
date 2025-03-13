@@ -103,10 +103,41 @@ const isOwnerOrAdmin = (req, res, next) => {
     );
 };
 
+// Kullanıcı işlemleri için sahiplik veya admin kontrolü
+const isOwnerOrAdminForUser = (req, res, next) => {
+  const userRole = req.user.role;
+  const userId = req.user.id;
+  const targetUserId = req.params.id;
+
+  // Admin her türlü erişebilir
+  if (userRole === "admin") {
+    console.info("isOwnerOrAdminForUser: Admin yetkisi doğrulandı.");
+    return next();
+  }
+
+  // Kullanıcı kendi bilgilerine erişebilir
+  if (userId === targetUserId) {
+    console.info(
+      "isOwnerOrAdminForUser: Kullanıcı kendi bilgilerine erişiyor."
+    );
+    return next();
+  }
+
+  console.error(
+    "isOwnerOrAdminForUser: Yetkisiz erişim, kendi bilgileriniz veya admin değilsiniz."
+  );
+  return res
+    .status(403)
+    .send(
+      "You are not authorized to perform this action. You can only manage your own profile."
+    );
+};
+
 module.exports = {
   getAccessToRoute,
   isAdmin,
   isAuthor,
   isAuthorOrAdmin,
   isOwnerOrAdmin,
+  isOwnerOrAdminForUser,
 };
