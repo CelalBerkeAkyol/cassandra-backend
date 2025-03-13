@@ -13,6 +13,11 @@ const imageSchema = new mongoose.Schema(
     altText: {
       type: String,
     },
+    // Yükleyen kullanıcı bilgisi
+    uploadedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
     // Blog yazısı ile ilişki kaldırıldı.
   },
   { timestamps: true }

@@ -1,7 +1,13 @@
 const express = require("express");
 const router = express.Router();
 const { sanitizePostContent } = require("../middlewares/sanitizionMiddleware");
-const { getAccessToRoute, isAdmin } = require("../middlewares/authMiddleware");
+const {
+  getAccessToRoute,
+  isAdmin,
+  isAuthor,
+  isAuthorOrAdmin,
+  isOwnerOrAdmin,
+} = require("../middlewares/authMiddleware");
 const {
   newPost,
   getAllPosts,
@@ -15,19 +21,38 @@ const {
 
 const { checkPostId } = require("../middlewares/databaseMidleware");
 
-//Tüm postları getir
+// Tüm postları getir - herkes erişebilir
 router.get("/", getAllPosts);
-// id si verilen bir post varsa getirilir
-// kategoriye göre post getirir
 
-// post paylaşma
-router.post("/", getAccessToRoute, isAdmin, sanitizePostContent, newPost);
-router
-  .route("/:id")
-  .put(getAccessToRoute, isAdmin, checkPostId, sanitizePostContent, updatePost)
-  .delete(getAccessToRoute, isAdmin, checkPostId, deletePost);
+// Tek bir post getir - herkes erişebilir
 router.get("/one-post/:id", checkPostId, postById);
+
+// Post görüntüleme sayısını artır - herkes erişebilir
 router.put("/:id/view", checkPostId, incPostView);
+
+// Post beğeni işlemleri - giriş yapmış herkes erişebilir
 router.put("/:id/upvote", getAccessToRoute, checkPostId, incPostLike);
 router.put("/:id/downvote", getAccessToRoute, checkPostId, decPostLike);
+
+// Post paylaşma - yazarlar ve adminler yapabilir
+router.post(
+  "/",
+  getAccessToRoute,
+  isAuthorOrAdmin,
+  sanitizePostContent,
+  newPost
+);
+
+// Post güncelleme ve silme - sadece içerik sahibi veya admin yapabilir
+router
+  .route("/:id")
+  .put(
+    getAccessToRoute,
+    checkPostId,
+    isOwnerOrAdmin,
+    sanitizePostContent,
+    updatePost
+  )
+  .delete(getAccessToRoute, checkPostId, isOwnerOrAdmin, deletePost);
+
 module.exports = router;

@@ -13,6 +13,7 @@ exports.uploadImages = async (req, res) => {
 
     const uploadedImages = [];
     const altText = req.body.altText || "";
+    const userId = req.user.id;
 
     for (const file of req.files) {
       const imageUrl = `${req.protocol}://${req.get("host")}/uploads/${
@@ -22,6 +23,7 @@ exports.uploadImages = async (req, res) => {
         url: imageUrl,
         filename: file.filename,
         altText: altText,
+        uploadedBy: userId,
       });
 
       await image.save();
@@ -86,14 +88,34 @@ exports.deleteImage = async (req, res) => {
   console.info("image/deleteImage: Görsel silme işlemi başladı.");
   try {
     const { id } = req.params;
-    const deletedImage = await Image.findByIdAndDelete(id);
+    const userId = req.user.id;
+    const userRole = req.user.role;
 
-    if (!deletedImage) {
+    const image = await Image.findById(id);
+
+    if (!image) {
       console.warn(`image/deleteImage: ID ${id} ile görsel bulunamadı.`);
       return res
         .status(404)
         .json({ success: false, message: "Bu ID'li görsel bulunamadı." });
     }
+
+    if (
+      userRole !== "admin" &&
+      image.uploadedBy &&
+      image.uploadedBy.toString() !== userId
+    ) {
+      console.error(
+        `image/deleteImage: Yetkisiz silme girişimi, kullanıcı: ${userId}, görsel sahibi: ${image.uploadedBy}`
+      );
+      return res.status(403).json({
+        success: false,
+        message:
+          "Bu görseli silme yetkiniz yok. Sadece kendi yüklediğiniz görselleri silebilirsiniz.",
+      });
+    }
+
+    const deletedImage = await Image.findByIdAndDelete(id);
 
     console.info(`image/deleteImage: ID ${id} ile görsel başarıyla silindi.`);
     return res.status(200).json({
