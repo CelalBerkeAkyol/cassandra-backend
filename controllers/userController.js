@@ -6,22 +6,36 @@ const getAllUserFromDatabase = async (req, res) => {
     "user/getAllUserFromDatabase: Tüm kullanıcılar getirilmeye çalışılıyor."
   );
   try {
-    const bilgiler = await User.find({});
-    if (bilgiler.length === 0) {
+    const userList = await User.find({});
+    if (userList.length === 0) {
       console.info("user/getAllUserFromDatabase: Hiç kullanıcı bulunamadı.");
-      return res
-        .status(404)
-        .json({ success: false, message: "Hiç kullanıcı bulunamadı." });
+      return res.status(404).json({
+        success: false,
+        message: "Hiç kullanıcı bulunamadı",
+        error: {
+          code: "NO_USERS",
+          details: ["Veritabanında hiç kullanıcı bulunmuyor."],
+        },
+      });
     }
     console.info(
-      `user/getAllUserFromDatabase: ${bilgiler.length} kullanıcı getirildi.`
+      `user/getAllUserFromDatabase: ${userList.length} kullanıcı getirildi.`
     );
-    res.status(200).json({ success: true, data: bilgiler });
+    res.status(200).json({
+      success: true,
+      message: "Tüm kullanıcılar başarıyla getirildi",
+      data: userList,
+    });
   } catch (error) {
     console.error("user/getAllUserFromDatabase hata:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Sunucu hatası", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Sunucu hatası",
+      error: {
+        code: "SERVER_ERROR",
+        details: ["Kullanıcılar getirilirken bir hata oluştu."],
+      },
+    });
   }
 };
 
@@ -31,18 +45,23 @@ const getUserByUserNameFromDatabase = async (req, res) => {
   );
   const username = req.params.username;
   try {
-    const bilgiler = await User.findOne(
+    const userList = await User.findOne(
       { userName: username },
       "userName role createdAt"
     );
-    if (!bilgiler) {
+    if (!userList) {
       console.info(
         "user/getUserByUserNameFromDatabase: Kullanıcı bulunamadı:",
         username
       );
-      return res
-        .status(404)
-        .json({ success: false, message: "Kullanıcı bulunamadı." });
+      return res.status(404).json({
+        success: false,
+        message: "Kullanıcı bulunamadı",
+        error: {
+          code: "USER_NOT_FOUND",
+          details: ["Bu kullanıcı adı ile kayıtlı kullanıcı bulunamadı."],
+        },
+      });
     }
 
     console.info(
@@ -51,14 +70,19 @@ const getUserByUserNameFromDatabase = async (req, res) => {
     );
     res.status(200).json({
       success: true,
-      message: "Bireysel kullanıcı bilgileriniz",
-      data: bilgiler,
+      message: "Kullanıcı bilgileri başarıyla getirildi",
+      data: userList,
     });
   } catch (error) {
     console.error("user/getUserByUserNameFromDatabase hata:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Sunucu hatası", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Sunucu hatası",
+      error: {
+        code: "SERVER_ERROR",
+        details: ["Kullanıcı bilgileri getirilirken bir hata oluştu."],
+      },
+    });
   }
 };
 
@@ -70,7 +94,11 @@ const getUserByID = async (req, res) => {
     console.error("user/getUserByID: ID sağlanmadı.");
     return res.status(400).json({
       success: false,
-      message: "Kullanıcı ID'si gereklidir.",
+      message: "Kullanıcı ID'si gereklidir",
+      error: {
+        code: "MISSING_ID",
+        details: ["Kullanıcı ID'si belirtilmedi."],
+      },
     });
   }
 
@@ -80,34 +108,48 @@ const getUserByID = async (req, res) => {
       console.error("user/getUserByID: Geçersiz ID formatı:", id);
       return res.status(400).json({
         success: false,
-        message: "Geçersiz kullanıcı ID formatı.",
+        message: "Geçersiz kullanıcı ID formatı",
+        error: {
+          code: "INVALID_ID",
+          details: ["Girilen ID formatı geçersiz."],
+        },
       });
     }
 
     // Daha fazla kullanıcı bilgisi getirmek için select kısmını güncelliyoruz
-    const bilgiler = await User.findById(
+    const userList = await User.findById(
       { _id: id },
       "userName fullName email bio profileImage occupation website socialLinks role isVerified createdAt"
     );
 
-    if (!bilgiler) {
+    if (!userList) {
       console.info("user/getUserByID: Kullanıcı bulunamadı, ID:", id);
-      return res
-        .status(404)
-        .json({ success: false, message: "Kullanıcı bulunamadı." });
+      return res.status(404).json({
+        success: false,
+        message: "Kullanıcı bulunamadı",
+        error: {
+          code: "USER_NOT_FOUND",
+          details: ["Bu ID ile kayıtlı kullanıcı bulunamadı."],
+        },
+      });
     }
 
     console.info("user/getUserByID: Kullanıcı getirildi, ID:", id);
     res.status(200).json({
       success: true,
-      message: "Kullanıcı bilgileri",
-      data: bilgiler,
+      message: "Kullanıcı bilgileri başarıyla getirildi",
+      data: userList,
     });
   } catch (error) {
     console.error("user/getUserByID hata:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Sunucu hatası", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Sunucu hatası",
+      error: {
+        code: "SERVER_ERROR",
+        details: ["Kullanıcı bilgileri getirilirken bir hata oluştu."],
+      },
+    });
   }
 };
 
@@ -115,9 +157,14 @@ const deleteUserFromDatabase = async (req, res) => {
   const username = req.params.username;
   if (!username) {
     console.error("user/deleteUserFromDatabase: Username sağlanmadı.");
-    return res
-      .status(400)
-      .json({ success: false, message: "Username is required" });
+    return res.status(400).json({
+      success: false,
+      message: "Username is required",
+      error: {
+        code: "MISSING_USERNAME",
+        details: ["Kullanıcı adı belirtilmedi."],
+      },
+    });
   }
   try {
     const result = await User.deleteOne({ userName: username });
@@ -126,19 +173,31 @@ const deleteUserFromDatabase = async (req, res) => {
         "user/deleteUserFromDatabase: Kullanıcı bulunamadı:",
         username
       );
-      return res
-        .status(404)
-        .json({ success: false, message: "Kullanıcı bulunamadı." });
+      return res.status(404).json({
+        success: false,
+        message: "Kullanıcı bulunamadı",
+        error: {
+          code: "USER_NOT_FOUND",
+          details: ["Bu kullanıcı adı ile kayıtlı kullanıcı bulunamadı."],
+        },
+      });
     }
     console.info("user/deleteUserFromDatabase: Kullanıcı silindi:", username);
-    res
-      .status(200)
-      .json({ success: true, message: "Kullanıcı başarıyla silindi." });
+    res.status(200).json({
+      success: true,
+      message: "Kullanıcı başarıyla silindi",
+      data: null,
+    });
   } catch (error) {
     console.error("user/deleteUserFromDatabase hata:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Sunucu hatası", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Sunucu hatası",
+      error: {
+        code: "SERVER_ERROR",
+        details: ["Kullanıcı silinirken bir hata oluştu."],
+      },
+    });
   }
 };
 
@@ -146,25 +205,44 @@ const deleteUserByID = async (req, res) => {
   const id = req.params.id;
   if (!id) {
     console.error("user/deleteUserByID: ID sağlanmadı.");
-    return res.status(400).json({ success: false, message: "ID is required" });
+    return res.status(400).json({
+      success: false,
+      message: "ID is required",
+      error: {
+        code: "MISSING_ID",
+        details: ["Kullanıcı ID'si belirtilmedi."],
+      },
+    });
   }
   try {
     const result = await User.deleteOne({ _id: id });
     if (result.deletedCount === 0) {
       console.info("user/deleteUserByID: Kullanıcı bulunamadı, ID:", id);
-      return res
-        .status(404)
-        .json({ success: false, message: "Kullanıcı bulunamadı." });
+      return res.status(404).json({
+        success: false,
+        message: "Kullanıcı bulunamadı",
+        error: {
+          code: "USER_NOT_FOUND",
+          details: ["Bu ID ile kayıtlı kullanıcı bulunamadı."],
+        },
+      });
     }
     console.info("user/deleteUserByID: Kullanıcı silindi, ID:", id);
-    res
-      .status(200)
-      .json({ success: true, message: "Kullanıcı başarıyla silindi." });
+    res.status(200).json({
+      success: true,
+      message: "Kullanıcı başarıyla silindi",
+      data: null,
+    });
   } catch (error) {
     console.error("user/deleteUserByID hata:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Sunucu hatası", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Sunucu hatası",
+      error: {
+        code: "SERVER_ERROR",
+        details: ["Kullanıcı silinirken bir hata oluştu."],
+      },
+    });
   }
 };
 
@@ -179,7 +257,10 @@ const deleteAllUsersFromDatabase = async (req, res) => {
       );
       res.status(200).json({
         success: true,
-        message: `${result.deletedCount} kullanıcı silindi.`,
+        message: "Tüm kullanıcılar başarıyla silindi",
+        data: {
+          deletedCount: result.deletedCount,
+        },
       });
     } else {
       console.info(
@@ -187,15 +268,22 @@ const deleteAllUsersFromDatabase = async (req, res) => {
       );
       res.status(400).json({
         success: false,
-        message: "Sanırım silmekten vazgeçtiniz.",
+        message: "Silme işlemi iptal edildi",
+        error: {
+          code: "DELETE_CANCELLED",
+          details: ["Silme işlemi onaylanmadı."],
+        },
       });
     }
   } catch (error) {
     console.error("user/deleteAllUsersFromDatabase hata:", error);
     res.status(500).json({
       success: false,
-      message: "Kullanıcılar silinirken bir hata oluştu.",
-      error: error.message,
+      message: "Sunucu hatası",
+      error: {
+        code: "SERVER_ERROR",
+        details: ["Kullanıcılar silinirken bir hata oluştu."],
+      },
     });
   }
 };
@@ -211,7 +299,11 @@ const updateUserFromDatabase = async (req, res) => {
     console.error("user/updateUserFromDatabase: ID sağlanmadı.");
     return res.status(400).json({
       success: false,
-      message: "Kullanıcı ID'si gereklidir.",
+      message: "Kullanıcı ID'si gereklidir",
+      error: {
+        code: "MISSING_ID",
+        details: ["Kullanıcı ID'si belirtilmedi."],
+      },
     });
   }
 
@@ -220,7 +312,11 @@ const updateUserFromDatabase = async (req, res) => {
     console.error("user/updateUserFromDatabase: Geçersiz ID formatı:", id);
     return res.status(400).json({
       success: false,
-      message: "Geçersiz kullanıcı ID formatı.",
+      message: "Geçersiz kullanıcı ID formatı",
+      error: {
+        code: "INVALID_ID",
+        details: ["Girilen ID formatı geçersiz."],
+      },
     });
   }
 
@@ -252,16 +348,32 @@ const updateUserFromDatabase = async (req, res) => {
         "user/updateUserFromDatabase: Kullanıcı bulunamadı, ID:",
         id
       );
-      return res
-        .status(404)
-        .json({ success: false, message: "Kullanıcı bulunamadı" });
+      return res.status(404).json({
+        success: false,
+        message: "Kullanıcı bulunamadı",
+        error: {
+          code: "USER_NOT_FOUND",
+          details: ["Bu ID ile kayıtlı kullanıcı bulunamadı."],
+        },
+      });
     }
 
     console.info("user/updateUserFromDatabase: Kullanıcı güncellendi, ID:", id);
-    res.status(200).json({ success: true, data: updatedUser });
+    res.status(200).json({
+      success: true,
+      message: "Kullanıcı başarıyla güncellendi",
+      data: updatedUser,
+    });
   } catch (error) {
     console.error("user/updateUserFromDatabase hata:", error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Sunucu hatası",
+      error: {
+        code: "SERVER_ERROR",
+        details: ["Kullanıcı güncellenirken bir hata oluştu."],
+      },
+    });
   }
 };
 
