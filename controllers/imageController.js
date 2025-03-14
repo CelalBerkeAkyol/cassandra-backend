@@ -1,14 +1,19 @@
 const Image = require("../Models/ImageSchema");
 
 // Çoklu görsel yükleme (altText zorunlu değil)
-exports.uploadImages = async (req, res) => {
+const uploadImages = async (req, res) => {
   console.info("image/uploadImages: Görsel yükleme işlemi başladı.");
   try {
     if (!req.files || req.files.length === 0) {
       console.warn("image/uploadImages: Görsel dosyası bulunamadı.");
-      return res
-        .status(400)
-        .json({ success: false, message: "Görsel dosyası bulunamadı." });
+      return res.status(400).json({
+        success: false,
+        message: "Görsel dosyası bulunamadı",
+        error: {
+          code: "NO_FILES",
+          details: ["Yüklenecek görsel dosyası bulunamadı."],
+        },
+      });
     }
 
     const uploadedImages = [];
@@ -35,21 +40,24 @@ exports.uploadImages = async (req, res) => {
     );
     return res.status(201).json({
       success: true,
-      message: "Görseller başarıyla yüklendi.",
-      images: uploadedImages,
+      message: "Görseller başarıyla yüklendi",
+      data: uploadedImages,
     });
   } catch (error) {
     console.error("image/uploadImages hata:", error);
     return res.status(500).json({
       success: false,
-      message: "Görseller yüklenirken bir hata oluştu.",
-      error: error.message,
+      message: "Sunucu hatası",
+      error: {
+        code: "SERVER_ERROR",
+        details: ["Görseller yüklenirken bir hata oluştu."],
+      },
     });
   }
 };
 
 // Görselleri sayfalama ile listeleme
-exports.getImages = async (req, res) => {
+const getImages = async (req, res) => {
   console.info("image/getImages: Görseller listeleniyor.");
   try {
     const page = parseInt(req.query.page) || 1;
@@ -67,24 +75,32 @@ exports.getImages = async (req, res) => {
     console.info(`image/getImages: ${images.length} görsel listelendi.`);
     return res.status(200).json({
       success: true,
-      message: "Görseller başarıyla listelendi.",
-      images,
-      page,
-      totalPages,
-      total,
+      message: "Görseller başarıyla listelendi",
+      data: {
+        images,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalItems: total,
+          itemsPerPage: limit,
+        },
+      },
     });
   } catch (error) {
     console.error("image/getImages hata:", error);
     return res.status(500).json({
       success: false,
-      message: "Görseller listelenirken bir hata oluştu.",
-      error: error.message,
+      message: "Sunucu hatası",
+      error: {
+        code: "SERVER_ERROR",
+        details: ["Görseller listelenirken bir hata oluştu."],
+      },
     });
   }
 };
 
 // Görsel silme
-exports.deleteImage = async (req, res) => {
+const deleteImage = async (req, res) => {
   console.info("image/deleteImage: Görsel silme işlemi başladı.");
   try {
     const { id } = req.params;
@@ -95,9 +111,14 @@ exports.deleteImage = async (req, res) => {
 
     if (!image) {
       console.warn(`image/deleteImage: ID ${id} ile görsel bulunamadı.`);
-      return res
-        .status(404)
-        .json({ success: false, message: "Bu ID'li görsel bulunamadı." });
+      return res.status(404).json({
+        success: false,
+        message: "Görsel bulunamadı",
+        error: {
+          code: "IMAGE_NOT_FOUND",
+          details: ["Bu ID'li görsel bulunamadı."],
+        },
+      });
     }
 
     if (
@@ -110,8 +131,11 @@ exports.deleteImage = async (req, res) => {
       );
       return res.status(403).json({
         success: false,
-        message:
-          "Bu görseli silme yetkiniz yok. Sadece kendi yüklediğiniz görselleri silebilirsiniz.",
+        message: "Bu görseli silme yetkiniz yok",
+        error: {
+          code: "UNAUTHORIZED",
+          details: ["Sadece kendi yüklediğiniz görselleri silebilirsiniz."],
+        },
       });
     }
 
@@ -120,15 +144,24 @@ exports.deleteImage = async (req, res) => {
     console.info(`image/deleteImage: ID ${id} ile görsel başarıyla silindi.`);
     return res.status(200).json({
       success: true,
-      message: "Görsel başarıyla silindi.",
-      image: deletedImage,
+      message: "Görsel başarıyla silindi",
+      data: deletedImage,
     });
   } catch (error) {
     console.error("image/deleteImage hata:", error);
     return res.status(500).json({
       success: false,
-      message: "Görsel silinirken bir hata oluştu.",
-      error: error.message,
+      message: "Sunucu hatası",
+      error: {
+        code: "SERVER_ERROR",
+        details: ["Görsel silinirken bir hata oluştu."],
+      },
     });
   }
+};
+
+module.exports = {
+  uploadImages,
+  getImages,
+  deleteImage,
 };
