@@ -4,7 +4,7 @@ const {
   getAllUserFromDatabase,
   deleteAllUsersFromDatabase,
   updateUserFromDatabase,
-
+  getUserByUserNameFromDatabase,
   getUserByID,
   deleteUserByID,
   updateUserRole,
@@ -19,6 +19,7 @@ const {
 router.use(getAccessToRoute); // Tüm rotalarda erişim kontrolü
 
 // Kullanıcı bilgisi getirme - giriş yapmış herkes erişebilir
+router.get("/username/:username", getUserByUserNameFromDatabase);
 router.get("/:id", getUserByID);
 
 // Kullanıcı güncelleme - kullanıcının kendisi veya admin yapabilir
