@@ -9,7 +9,7 @@ const getPostsByCategoriesName = async (req, res) => {
 
   try {
     const posts = await Post.find({ category: categoryName })
-      .populate("category", "userName role profileImage")
+      .populate("author", "userName")
       .sort({ createdAt: -1 })
       .exec();
 
@@ -20,6 +20,10 @@ const getPostsByCategoriesName = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Bu kategoriye ait herhangi bir post bulunmamaktadır.",
+        error: {
+          code: "NOT_FOUND",
+          details: ["Belirtilen kategoriye ait post bulunamadı."],
+        },
       });
     }
 
@@ -29,41 +33,58 @@ const getPostsByCategoriesName = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: `${categoryName} kategorisindeki postlar başarıyla getirildi.`,
-      posts,
+      data: posts,
     });
   } catch (error) {
     console.error("category/getPostsByCategoriesName hata:", error);
     return res.status(500).json({
       success: false,
-      message: "Veritabanında bir hata oluştu.",
-      error: error.message,
+      message: "Postlar getirilirken bir hata oluştu.",
+      error: {
+        code: "SERVER_ERROR",
+        details: ["Sunucu hatası oluştu. Lütfen daha sonra tekrar deneyin."],
+      },
     });
   }
 };
 
 // Tüm kategorileri döndürür (Post modelindeki enum değerleri üzerinden)
-const getAllCategory = async (req, res) => {
-  console.info("category/getAllCategory: Tüm kategoriler aranıyor.");
+const getAllCategories = async (req, res) => {
+  console.info("category/getAllCategories: Tüm kategoriler aranıyor.");
   try {
-    const allCategory = Post.schema.path("category").enumValues;
+    const categories = Post.schema.path("category").enumValues;
 
-    console.info("category/getAllCategory: Kategoriler başarıyla getirildi.");
+    if (!categories || categories.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Hiç kategori bulunamadı.",
+        error: {
+          code: "NOT_FOUND",
+          details: ["Sistemde tanımlı kategori bulunamadı."],
+        },
+      });
+    }
+
+    console.info("category/getAllCategories: Kategoriler başarıyla getirildi.");
     res.status(200).json({
       success: true,
       message: "Tüm kategoriler başarıyla getirildi.",
-      allCategory,
+      data: categories,
     });
   } catch (error) {
-    console.error("category/getAllCategory hata:", error);
+    console.error("category/getAllCategories hata:", error);
     res.status(500).json({
       success: false,
-      message: "Kategoriler getirilemedi.",
-      error: error.message,
+      message: "Kategoriler getirilirken bir hata oluştu.",
+      error: {
+        code: "SERVER_ERROR",
+        details: ["Sunucu hatası oluştu. Lütfen daha sonra tekrar deneyin."],
+      },
     });
   }
 };
 
 module.exports = {
   getPostsByCategoriesName,
-  getAllCategory,
+  getAllCategories,
 };
