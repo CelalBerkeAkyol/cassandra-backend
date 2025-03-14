@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const { sanitizePostContent } = require("../middlewares/sanitizionMiddleware");
+const {
+  sanitizePostContent,
+} = require("../middlewares/sanitizationMiddleware");
 const {
   getAccessToRoute,
   isAdmin,
@@ -19,7 +21,7 @@ const {
   decPostLike,
 } = require("../controllers/postController");
 
-const { checkPostId } = require("../middlewares/databaseMidleware");
+const { checkPostId } = require("../middlewares/databaseMiddleware");
 
 // Tüm postları getir - herkes erişebilir
 router.get("/", getAllPosts);
