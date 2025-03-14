@@ -9,7 +9,11 @@ const newPost = async (req, res) => {
     console.error("post/newPost: Eksik veri – başlık veya içerik sağlanmadı.");
     return res.status(400).json({
       success: false,
-      message: "Başlık ve içerik zorunludur.",
+      message: "Başlık ve içerik zorunludur",
+      error: {
+        code: "MISSING_FIELDS",
+        details: ["Başlık ve içerik alanları zorunludur."],
+      },
     });
   }
 
@@ -22,14 +26,18 @@ const newPost = async (req, res) => {
     console.info("post/newPost: Post oluşturuldu, ID:", post._id);
     res.status(201).json({
       success: true,
+      message: "Post başarıyla oluşturuldu",
       data: post,
     });
   } catch (error) {
     console.error("post/newPost hata:", error);
     res.status(500).json({
       success: false,
-      message: "Sunucu hatası, post oluşturulamadı.",
-      error: error.message,
+      message: "Sunucu hatası",
+      error: {
+        code: "SERVER_ERROR",
+        details: ["Post oluşturulurken bir hata oluştu."],
+      },
     });
   }
 };
@@ -56,17 +64,27 @@ const getAllPosts = async (req, res) => {
     console.info(`post/getAllPosts: ${allPosts.length} post getirildi.`);
     res.status(200).json({
       success: true,
-      count: allPosts.length,
-      total,
-      pagination,
-      data: allPosts,
+      message: "Postlar başarıyla getirildi",
+      data: {
+        posts: allPosts,
+        pagination: {
+          currentPage: page,
+          totalPages: Math.ceil(total / limit),
+          totalItems: total,
+          itemsPerPage: limit,
+          ...pagination,
+        },
+      },
     });
   } catch (err) {
     console.error("post/getAllPosts hata:", err);
     res.status(500).json({
       success: false,
-      message: "Sunucu hatası, yazılar getirilemedi.",
-      error: err.message,
+      message: "Sunucu hatası",
+      error: {
+        code: "SERVER_ERROR",
+        details: ["Postlar getirilirken bir hata oluştu."],
+      },
     });
   }
 };
@@ -80,14 +98,18 @@ const postById = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      post: req.post,
+      message: "Post başarıyla getirildi",
+      data: req.post,
     });
   } catch (error) {
     console.error("post/postById hata:", error);
     res.status(500).json({
       success: false,
-      message: "Sunucu hatası.",
-      error: error.message,
+      message: "Sunucu hatası",
+      error: {
+        code: "SERVER_ERROR",
+        details: ["Post getirilirken bir hata oluştu."],
+      },
     });
   }
 };
@@ -101,14 +123,18 @@ const deletePost = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Post başarıyla silindi.",
+      message: "Post başarıyla silindi",
+      data: null,
     });
   } catch (error) {
     console.error("post/deletePost hata:", error);
     res.status(500).json({
       success: false,
-      message: "Sunucu hatası.",
-      error: error.message,
+      message: "Sunucu hatası",
+      error: {
+        code: "SERVER_ERROR",
+        details: ["Post silinirken bir hata oluştu."],
+      },
     });
   }
 };
@@ -125,7 +151,11 @@ const updatePost = async (req, res) => {
     console.error("post/updatePost: Güncelleme için veri sağlanmadı.");
     return res.status(400).json({
       success: false,
-      message: "Güncelleme için veri sağlanmadı.",
+      message: "Güncelleme için veri sağlanmadı",
+      error: {
+        code: "MISSING_UPDATE_DATA",
+        details: ["Güncelleme için gerekli veriler sağlanmadı."],
+      },
     });
   }
 
@@ -137,13 +167,20 @@ const updatePost = async (req, res) => {
     const updatedPost = await req.post.save();
 
     console.info("post/updatePost: Post güncellendi, ID:", updatedPost._id);
-    res.status(200).json({ success: true, data: updatedPost });
+    res.status(200).json({
+      success: true,
+      message: "Post başarıyla güncellendi",
+      data: updatedPost,
+    });
   } catch (error) {
     console.error("post/updatePost hata:", error);
     res.status(500).json({
       success: false,
-      message: "Sunucu hatası.",
-      error: error.message,
+      message: "Sunucu hatası",
+      error: {
+        code: "SERVER_ERROR",
+        details: ["Post güncellenirken bir hata oluştu."],
+      },
     });
   }
 };
@@ -162,13 +199,20 @@ const incPostView = async (req, res) => {
       "post/incPostView: Post view sayısı artırıldı, yeni değer:",
       updatedPost.views
     );
-    res.status(200).json({ success: true, data: updatedPost });
+    res.status(200).json({
+      success: true,
+      message: "Post görüntülenme sayısı güncellendi",
+      data: updatedPost,
+    });
   } catch (error) {
     console.error("post/incPostView hata:", error);
     res.status(500).json({
       success: false,
-      message: "Sunucu hatası.",
-      error: error.message,
+      message: "Sunucu hatası",
+      error: {
+        code: "SERVER_ERROR",
+        details: ["Post görüntülenme sayısı güncellenirken bir hata oluştu."],
+      },
     });
   }
 };
@@ -195,9 +239,14 @@ const incPostLike = async (req, res) => {
 
     const hasLiked = req.post.likedBy.some((id) => id.toString() === userId);
     if (hasLiked) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Bu postu zaten beğendiniz." });
+      return res.status(400).json({
+        success: false,
+        message: "Bu postu zaten beğendiniz",
+        error: {
+          code: "ALREADY_LIKED",
+          details: ["Bu postu daha önce beğendiniz."],
+        },
+      });
     }
 
     req.post.likedBy.push(userId);
@@ -209,13 +258,20 @@ const incPostLike = async (req, res) => {
       "post/incPostLike: Post beğeni sayısı artırıldı, yeni değer:",
       updatedPost.likes
     );
-    res.status(200).json({ success: true, data: updatedPost });
+    res.status(200).json({
+      success: true,
+      message: "Post beğeni sayısı güncellendi",
+      data: updatedPost,
+    });
   } catch (error) {
     console.error("post/incPostLike hata:", error);
     res.status(500).json({
       success: false,
-      message: "Sunucu hatası.",
-      error: error.message,
+      message: "Sunucu hatası",
+      error: {
+        code: "SERVER_ERROR",
+        details: ["Post beğeni sayısı güncellenirken bir hata oluştu."],
+      },
     });
   }
 };
@@ -239,9 +295,14 @@ const decPostLike = async (req, res) => {
       (id) => id.toString() === userId
     );
     if (hasDownvoted) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Bu postu zaten downvote ettiniz." });
+      return res.status(400).json({
+        success: false,
+        message: "Bu postu zaten downvote ettiniz",
+        error: {
+          code: "ALREADY_DISLIKED",
+          details: ["Bu postu daha önce beğenmediniz."],
+        },
+      });
     }
 
     req.post.dislikedBy.push(userId);
