@@ -5,11 +5,14 @@ const getAccessToRoute = (req, res, next) => {
   const access_token = req.cookies.token;
   if (!access_token) {
     console.error("getAccessToRoute: Token bulunamadı.");
-    return res
-      .status(403)
-      .send(
-        "A token is required for authentication. Probably you are not a user "
-      );
+    return res.status(403).json({
+      success: false,
+      message: "Bu işlemi gerçekleştirmek için giriş yapmanız gerekiyor.",
+      error: {
+        code: "AUTH_REQUIRED",
+        details: ["Oturum açmanız gerekiyor."],
+      },
+    });
   }
   try {
     const decoded = jwt.verify(access_token, process.env.JWT_SECRET);
@@ -18,7 +21,14 @@ const getAccessToRoute = (req, res, next) => {
     return next();
   } catch (err) {
     console.error("getAccessToRoute: Geçersiz token.", err);
-    return res.status(401).send("Invalid Token");
+    return res.status(401).json({
+      success: false,
+      message: "Oturumunuz sona ermiş olabilir.",
+      error: {
+        code: "INVALID_TOKEN",
+        details: ["Lütfen tekrar giriş yapın."],
+      },
+    });
   }
 };
 
@@ -30,11 +40,15 @@ const isAdmin = (req, res, next) => {
     return next();
   } else {
     console.error("isAdmin: Yetkisiz erişim, admin değilsiniz.");
-    return res
-      .status(403)
-      .send(
-        "You are not authorized to perform this action. Only admins can access."
-      );
+    return res.status(403).json({
+      success: false,
+      message:
+        "Bu işlemi gerçekleştirmek için admin yetkisine sahip olmanız gerekiyor.",
+      error: {
+        code: "ADMIN_REQUIRED",
+        details: ["Sadece admin kullanıcılar bu işlemi gerçekleştirebilir."],
+      },
+    });
   }
 };
 
@@ -46,11 +60,15 @@ const isAuthor = (req, res, next) => {
     return next();
   } else {
     console.error("isAuthor: Yetkisiz erişim, yazar değilsiniz.");
-    return res
-      .status(403)
-      .send(
-        "You are not authorized to perform this action. Only authors can access."
-      );
+    return res.status(403).json({
+      success: false,
+      message:
+        "Bu işlemi gerçekleştirmek için yazar yetkisine sahip olmanız gerekiyor.",
+      error: {
+        code: "AUTHOR_REQUIRED",
+        details: ["Sadece yazar kullanıcılar bu işlemi gerçekleştirebilir."],
+      },
+    });
   }
 };
 
@@ -64,11 +82,17 @@ const isAuthorOrAdmin = (req, res, next) => {
     console.error(
       "isAuthorOrAdmin: Yetkisiz erişim, yazar veya admin değilsiniz."
     );
-    return res
-      .status(403)
-      .send(
-        "You are not authorized to perform this action. Only authors and admins can access."
-      );
+    return res.status(403).json({
+      success: false,
+      message:
+        "Bu işlemi gerçekleştirmek için yazar veya admin yetkisine sahip olmanız gerekiyor.",
+      error: {
+        code: "AUTHOR_OR_ADMIN_REQUIRED",
+        details: [
+          "Sadece yazar veya admin kullanıcılar bu işlemi gerçekleştirebilir.",
+        ],
+      },
+    });
   }
 };
 
@@ -76,8 +100,6 @@ const isAuthorOrAdmin = (req, res, next) => {
 const isOwnerOrAdmin = (req, res, next) => {
   const userRole = req.user.role;
   const userId = req.user.id;
-
-  // Post'un author alanı ile kullanıcı ID'sini karşılaştır
   const postAuthorId =
     req.post && req.post.author ? req.post.author.toString() : null;
 
@@ -96,11 +118,15 @@ const isOwnerOrAdmin = (req, res, next) => {
   console.error(
     "isOwnerOrAdmin: Yetkisiz erişim, içerik sahibi veya admin değilsiniz."
   );
-  return res
-    .status(403)
-    .send(
-      "You are not authorized to perform this action. You can only manage your own content."
-    );
+  return res.status(403).json({
+    success: false,
+    message:
+      "Bu içeriği sadece içerik sahibi veya admin düzenleyebilir/silebilir.",
+    error: {
+      code: "OWNER_OR_ADMIN_REQUIRED",
+      details: ["İçeriği düzenlemek veya silmek için yetkiniz bulunmuyor."],
+    },
+  });
 };
 
 // Kullanıcı işlemleri için sahiplik veya admin kontrolü
@@ -126,11 +152,14 @@ const isOwnerOrAdminForUser = (req, res, next) => {
   console.error(
     "isOwnerOrAdminForUser: Yetkisiz erişim, kendi bilgileriniz veya admin değilsiniz."
   );
-  return res
-    .status(403)
-    .send(
-      "You are not authorized to perform this action. You can only manage your own profile."
-    );
+  return res.status(403).json({
+    success: false,
+    message: "Kullanıcı bilgilerini sadece kendisi veya admin düzenleyebilir.",
+    error: {
+      code: "USER_OWNER_OR_ADMIN_REQUIRED",
+      details: ["Kullanıcı bilgilerini düzenlemek için yetkiniz bulunmuyor."],
+    },
+  });
 };
 
 module.exports = {
