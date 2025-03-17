@@ -13,6 +13,11 @@ const postSchema = new mongoose.Schema(
       type: String,
       required: [true, "Lütfen içerik giriniz"], // Uyarı metni ekleme
     },
+    summary: {
+      type: String,
+      maxlength: 200,
+      trim: true,
+    },
     author: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
