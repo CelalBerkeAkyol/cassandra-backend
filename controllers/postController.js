@@ -55,7 +55,7 @@ const getAllPosts = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(startIndex)
       .limit(limit)
-      .populate("author", "userName role");
+      .populate("author", "userName role occupation");
 
     const pagination = {};
     if (startIndex > 0) pagination.previous = { page: page - 1, limit };
