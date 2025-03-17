@@ -3,9 +3,9 @@ const Post = require("../Models/PostSchema");
 // Yeni post ekleme
 const newPost = async (req, res) => {
   console.info("post/newPost: Yeni post ekleme işlemi başladı.");
-  const { title, content } = req.body;
+  const { title, content, summary } = req.body;
 
-  if (!title || !content) {
+  if (!title || !content || !summary) {
     console.error("post/newPost: Eksik veri – başlık veya içerik sağlanmadı.");
     return res.status(400).json({
       success: false,
@@ -162,6 +162,7 @@ const updatePost = async (req, res) => {
   req.post.title = updatedData.title || req.post.title;
   req.post.content = updatedData.content || req.post.content;
   req.post.category = updatedData.category || req.post.category;
+  req.post.summary = updatedData.summary || req.post.summary;
 
   try {
     const updatedPost = await req.post.save();
