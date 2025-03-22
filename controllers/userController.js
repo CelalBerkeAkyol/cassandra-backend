@@ -441,6 +441,53 @@ const updateUserRole = async (req, res) => {
   }
 };
 
+const getAuthorsAndAdmins = async (req, res) => {
+  console.info(
+    "user/getAuthorsAndAdmins: Admin ve Yazar kullanıcılar getiriliyor."
+  );
+  try {
+    // Find users with role of either 'author' or 'admin'
+    const teamMembers = await User.find({
+      role: { $in: ["author", "admin"] },
+    }).select(
+      "userName fullName email profileImage bio occupation website socialLinks role createdAt isVerified"
+    );
+
+    if (teamMembers.length === 0) {
+      console.info(
+        "user/getAuthorsAndAdmins: Hiç yazar veya admin bulunamadı."
+      );
+      return res.status(404).json({
+        success: false,
+        message: "Hiç yazar veya admin bulunamadı",
+        error: {
+          code: "NO_TEAM_MEMBERS",
+          details: ["Veritabanında hiç yazar veya admin bulunmuyor."],
+        },
+      });
+    }
+
+    console.info(
+      `user/getAuthorsAndAdmins: ${teamMembers.length} yazar ve admin getirildi.`
+    );
+    res.status(200).json({
+      success: true,
+      message: "Tüm yazarlar ve adminler başarıyla getirildi",
+      data: teamMembers,
+    });
+  } catch (error) {
+    console.error("user/getAuthorsAndAdmins hata:", error);
+    res.status(500).json({
+      success: false,
+      message: "Sunucu hatası",
+      error: {
+        code: "SERVER_ERROR",
+        details: ["Yazarlar ve adminler getirilirken bir hata oluştu."],
+      },
+    });
+  }
+};
+
 module.exports = {
   getAllUserFromDatabase,
   deleteAllUsersFromDatabase,
@@ -450,4 +497,5 @@ module.exports = {
   getUserByID,
   deleteUserByID,
   updateUserRole,
+  getAuthorsAndAdmins,
 };
