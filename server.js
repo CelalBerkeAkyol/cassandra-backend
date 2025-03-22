@@ -6,16 +6,16 @@ const router = require("./Routers/index");
 const cookieParser = require("cookie-parser");
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
-// CORS ayarları - Mobil cihazlardan erişim için daha geniş yapılandırma
+// CORS ayarları - env dosyasından origins alınıyor
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",")
+  : ["http://localhost:5173"];
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "http://192.168.1.189:5173",
-      "http://localhost:3000",
-    ],
+    origin: allowedOrigins,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true, // Cookie gönderimine izin verir
   })
