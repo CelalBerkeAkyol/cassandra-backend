@@ -8,12 +8,19 @@ const cookieParser = require("cookie-parser");
 const app = express();
 const port = 3000;
 
+// CORS ayarları - Mobil cihazlardan erişim için daha geniş yapılandırma
 app.use(
   cors({
-    origin: "http://localhost:5173", // Frontend URL
+    origin: [
+      "http://localhost:5173",
+      "http://192.168.1.189:5173",
+      "http://localhost:3000",
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true, // Cookie gönderimine izin verir
   })
 );
+
 // json formayına dönüştürmek için gerekli olan kodlar
 app.use(express.json({ limit: "50mb" })); // JSON için 50MB'a çıkar
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
@@ -38,6 +45,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(port, () => {
+app.listen(port, "0.0.0.0", () => {
   console.log(`Example app listening on port ${port}`);
+  console.log(`Server accessible at http://localhost:${port}`);
 });
