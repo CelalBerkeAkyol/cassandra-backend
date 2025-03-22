@@ -8,12 +8,16 @@ const {
   getUserByID,
   deleteUserByID,
   updateUserRole,
+  getAuthorsAndAdmins,
 } = require("../controllers/userController.js");
 const {
   getAccessToRoute,
   isAdmin,
   isOwnerOrAdminForUser,
 } = require("../middlewares/authMiddleware.js"); // kullanıcı kontrolü burada yapılıyor
+
+// Authors and Admins endpoint - public access
+router.get("/team", getAuthorsAndAdmins);
 
 // Ortak yol prefix'i kullanılarak rotalar birleştirildi
 router.use(getAccessToRoute); // Tüm rotalarda erişim kontrolü
