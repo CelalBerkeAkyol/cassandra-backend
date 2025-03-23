@@ -19,12 +19,16 @@ const {
   postById,
   incPostLike,
   decPostLike,
+  searchPosts,
 } = require("../controllers/postController");
 
 const { checkPostId } = require("../middlewares/databaseMiddleware");
 
 // Tüm postları getir - herkes erişebilir
 router.get("/", getAllPosts);
+
+// Post arama - herkes erişebilir
+router.get("/search", searchPosts);
 
 // Tek bir post getir - herkes erişebilir
 router.get("/one-post/:id", checkPostId, postById);

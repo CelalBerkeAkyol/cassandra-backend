@@ -326,6 +326,57 @@ const decPostLike = async (req, res) => {
   }
 };
 
+// Postlarda arama yapar
+const searchPosts = async (req, res) => {
+  console.info("post/searchPosts: Arama işlemi başladı");
+
+  try {
+    const query = req.query.query;
+    const limit = parseInt(req.query.limit) || 20;
+
+    if (!query) {
+      return res.status(400).json({
+        success: false,
+        message: "Arama sorgusu gereklidir",
+        error: {
+          code: "MISSING_QUERY",
+          details: ["Arama için query parametresi gereklidir"],
+        },
+      });
+    }
+
+    // Başlık, içerik, kategori ve özette arama yap
+    const searchResults = await Post.find({
+      $or: [
+        { title: { $regex: query, $options: "i" } },
+        { content: { $regex: query, $options: "i" } },
+        { category: { $regex: query, $options: "i" } },
+        { summary: { $regex: query, $options: "i" } },
+      ],
+    })
+      .limit(limit)
+      .sort({ createdAt: -1 })
+      .populate("author", "userName role occupation profileImage");
+
+    console.info(`post/searchPosts: ${searchResults.length} post bulundu.`);
+    res.status(200).json({
+      success: true,
+      message: "Arama sonuçları başarıyla getirildi",
+      data: searchResults,
+    });
+  } catch (err) {
+    console.error("post/searchPosts hata:", err);
+    res.status(500).json({
+      success: false,
+      message: "Sunucu hatası",
+      error: {
+        code: "SERVER_ERROR",
+        details: ["Arama yapılırken bir hata oluştu."],
+      },
+    });
+  }
+};
+
 module.exports = {
   newPost,
   getAllPosts,
@@ -335,4 +386,5 @@ module.exports = {
   incPostView,
   incPostLike,
   decPostLike,
+  searchPosts,
 };
