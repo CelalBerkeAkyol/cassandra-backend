@@ -359,19 +359,27 @@ const searchPosts = async (req, res) => {
       .populate("author", "userName role occupation profileImage");
 
     console.info(`post/searchPosts: ${searchResults.length} post bulundu.`);
-    res.status(200).json({
+
+    // Sonuç bulunamadığında da başarılı yanıt dön, sadece boş dizi gönder
+    // Bu şekilde hata düşmeyecek ve front-end tarafında daha iyi işlenebilecek
+    return res.status(200).json({
       success: true,
-      message: "Arama sonuçları başarıyla getirildi",
+      message:
+        searchResults.length > 0
+          ? "Arama sonuçları başarıyla getirildi"
+          : "Arama kriterlerinize uygun içerik bulunamadı",
       data: searchResults,
+      count: searchResults.length,
     });
   } catch (err) {
     console.error("post/searchPosts hata:", err);
     res.status(500).json({
       success: false,
-      message: "Sunucu hatası",
+      message:
+        "Arama yapılırken bir hata oluştu. Lütfen daha sonra tekrar deneyin.",
       error: {
         code: "SERVER_ERROR",
-        details: ["Arama yapılırken bir hata oluştu."],
+        details: ["Sunucu kaynaklı bir hata oluştu."],
       },
     });
   }
