@@ -61,7 +61,7 @@ const getImages = async (req, res) => {
   console.info("image/getImages: Görseller listeleniyor.");
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 9;
+    const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
 
     const images = await Image.find()
