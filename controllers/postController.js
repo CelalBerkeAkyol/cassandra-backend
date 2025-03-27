@@ -47,7 +47,7 @@ const getAllPosts = async (req, res) => {
   console.info("post/getAllPosts: Tüm postlar getirilmeye çalışılıyor.");
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 15;
+    const limit = parseInt(req.query.limit) || 20;
     const startIndex = (page - 1) * limit;
     const total = await Post.countDocuments();
 
