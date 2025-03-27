@@ -8,9 +8,16 @@ const getPostsByCategoriesName = async (req, res) => {
   );
 
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const startIndex = (page - 1) * limit;
+    const total = await Post.countDocuments({ category: categoryName });
+
     const posts = await Post.find({ category: categoryName })
       .populate("author", "userName profileImage occupation")
       .sort({ createdAt: -1 })
+      .skip(startIndex)
+      .limit(limit)
       .exec();
 
     if (!posts || posts.length === 0) {
@@ -27,13 +34,26 @@ const getPostsByCategoriesName = async (req, res) => {
       });
     }
 
+    const pagination = {};
+    if (startIndex > 0) pagination.previous = { page: page - 1, limit };
+    if (startIndex + limit < total) pagination.next = { page: page + 1, limit };
+
     console.info(
       `category/getPostsByCategoriesName: ${categoryName} kategorisinde ${posts.length} post getirildi.`
     );
     return res.status(200).json({
       success: true,
       message: `${categoryName} kategorisindeki postlar başarıyla getirildi.`,
-      data: posts,
+      data: {
+        posts: posts,
+        pagination: {
+          currentPage: page,
+          totalPages: Math.ceil(total / limit),
+          totalItems: total,
+          itemsPerPage: limit,
+          ...pagination,
+        },
+      },
     });
   } catch (error) {
     console.error("category/getPostsByCategoriesName hata:", error);
