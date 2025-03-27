@@ -93,7 +93,8 @@ const getAllPosts = async (req, res) => {
 const postById = async (req, res) => {
   console.info("post/postById: Post getirme işlemi başladı, ID:", req.post._id);
   try {
-    await req.post.populate("author", "userName");
+    // Yazarın daha fazla bilgisini populate etme (meslek ve profil fotoğrafı dahil)
+    await req.post.populate("author", "userName occupation profileImage");
     console.info("post/postById: Post getirildi, ID:", req.post._id);
 
     res.status(200).json({
