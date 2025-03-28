@@ -123,13 +123,6 @@ const getUserByID = async (req, res) => {
     // Geçerli bir MongoDB ObjectId kontrolü
     if (!mongoose.Types.ObjectId.isValid(id)) {
       console.error("user/getUserByID: Geçersiz ID formatı:", id);
-
-      // Geçersiz ID - çerezleri temizle
-      console.info(
-        "user/getUserByID: Geçersiz ID formatı nedeniyle çerezler temizleniyor"
-      );
-      clearAuthCookies(res);
-
       return res.status(400).json({
         success: false,
         message: "Geçersiz kullanıcı ID formatı",
@@ -148,13 +141,6 @@ const getUserByID = async (req, res) => {
 
     if (!userList) {
       console.info("user/getUserByID: Kullanıcı bulunamadı, ID:", id);
-
-      // Kullanıcı bulunamadı - çerezleri temizle
-      console.info(
-        "user/getUserByID: Kullanıcı bulunamadığı için çerezler temizleniyor"
-      );
-      clearAuthCookies(res);
-
       return res.status(404).json({
         success: false,
         message: "Kullanıcı bulunamadı",
@@ -214,6 +200,13 @@ const deleteUserFromDatabase = async (req, res) => {
       });
     }
     console.info("user/deleteUserFromDatabase: Kullanıcı silindi:", username);
+
+    // Kullanıcı silindiği için çerezleri temizle
+    console.info(
+      "user/deleteUserFromDatabase: Kullanıcı silindiği için çerezler temizleniyor"
+    );
+    clearAuthCookies(res);
+
     res.status(200).json({
       success: true,
       message: "Kullanıcı başarıyla silindi",
@@ -259,6 +252,13 @@ const deleteUserByID = async (req, res) => {
       });
     }
     console.info("user/deleteUserByID: Kullanıcı silindi, ID:", id);
+
+    // Kullanıcı silindiği için çerezleri temizle
+    console.info(
+      "user/deleteUserByID: Kullanıcı silindiği için çerezler temizleniyor"
+    );
+    clearAuthCookies(res);
+
     res.status(200).json({
       success: true,
       message: "Kullanıcı başarıyla silindi",
@@ -379,6 +379,13 @@ const updateUserFromDatabase = async (req, res) => {
         "user/updateUserFromDatabase: Kullanıcı bulunamadı, ID:",
         id
       );
+
+      // Kullanıcı bulunamadı - çerezleri temizle
+      console.info(
+        "user/updateUserFromDatabase: Kullanıcı bulunamadığı için çerezler temizleniyor"
+      );
+      clearAuthCookies(res);
+
       return res.status(404).json({
         success: false,
         message: "Kullanıcı bulunamadı",
@@ -440,6 +447,13 @@ const updateUserRole = async (req, res) => {
 
     if (!updatedUser) {
       console.info("user/updateUserRole: Kullanıcı bulunamadı, ID:", userId);
+
+      // Kullanıcı bulunamadı - çerezleri temizle
+      console.info(
+        "user/updateUserRole: Kullanıcı bulunamadığı için çerezler temizleniyor"
+      );
+      clearAuthCookies(res);
+
       return res.status(404).json({
         success: false,
         message: "Kullanıcı bulunamadı.",
