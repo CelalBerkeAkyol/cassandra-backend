@@ -1,22 +1,6 @@
 const mongoose = require("mongoose");
 const User = require("../Models/UserSchema");
-
-// Yardımcı fonksiyon - Çerezleri temizler
-const clearAuthCookies = (res) => {
-  console.info("Kimlik doğrulama çerezleri temizleniyor");
-  res.clearCookie("token", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "Lax",
-    path: "/",
-  });
-  res.clearCookie("refreshToken", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "Lax",
-    path: "/",
-  });
-};
+const { clearAuthCookies } = require("../Helpers/tokenHelpers");
 
 const getAllUserFromDatabase = async (req, res) => {
   console.info(
@@ -170,63 +154,10 @@ const getUserByID = async (req, res) => {
   }
 };
 
-const deleteUserFromDatabase = async (req, res) => {
-  const username = req.params.username;
-  if (!username) {
-    console.error("user/deleteUserFromDatabase: Username sağlanmadı.");
-    return res.status(400).json({
-      success: false,
-      message: "Username is required",
-      error: {
-        code: "MISSING_USERNAME",
-        details: ["Kullanıcı adı belirtilmedi."],
-      },
-    });
-  }
-  try {
-    const result = await User.deleteOne({ userName: username });
-    if (result.deletedCount === 0) {
-      console.info(
-        "user/deleteUserFromDatabase: Kullanıcı bulunamadı:",
-        username
-      );
-      return res.status(404).json({
-        success: false,
-        message: "Kullanıcı bulunamadı",
-        error: {
-          code: "USER_NOT_FOUND",
-          details: ["Bu kullanıcı adı ile kayıtlı kullanıcı bulunamadı."],
-        },
-      });
-    }
-    console.info("user/deleteUserFromDatabase: Kullanıcı silindi:", username);
-
-    // Kullanıcı silindiği için çerezleri temizle
-    console.info(
-      "user/deleteUserFromDatabase: Kullanıcı silindiği için çerezler temizleniyor"
-    );
-    clearAuthCookies(res);
-
-    res.status(200).json({
-      success: true,
-      message: "Kullanıcı başarıyla silindi",
-      data: null,
-    });
-  } catch (error) {
-    console.error("user/deleteUserFromDatabase hata:", error);
-    res.status(500).json({
-      success: false,
-      message: "Sunucu hatası",
-      error: {
-        code: "SERVER_ERROR",
-        details: ["Kullanıcı silinirken bir hata oluştu."],
-      },
-    });
-  }
-};
-
 const deleteUserByID = async (req, res) => {
   const id = req.params.id;
+  const currentUserId = req.user.id; // Get the current user's ID for comparison
+
   if (!id) {
     console.error("user/deleteUserByID: ID sağlanmadı.");
     return res.status(400).json({
@@ -238,31 +169,113 @@ const deleteUserByID = async (req, res) => {
       },
     });
   }
+
+  // Geçerli MongoDB ID kontrolü yap
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    console.error("user/deleteUserByID: Geçersiz ID formatı:", id);
+    return res.status(400).json({
+      success: false,
+      message: "Geçersiz kullanıcı ID formatı",
+      error: {
+        code: "INVALID_ID",
+        details: ["Girilen ID formatı geçersiz."],
+      },
+    });
+  }
+
   try {
-    const result = await User.deleteOne({ _id: id });
-    if (result.deletedCount === 0) {
-      console.info("user/deleteUserByID: Kullanıcı bulunamadı, ID:", id);
-      return res.status(404).json({
+    // Before deletion, get the user data for cleanup
+    let userToDelete;
+    try {
+      userToDelete = await User.findById(id);
+
+      if (!userToDelete) {
+        console.info("user/deleteUserByID: Kullanıcı bulunamadı, ID:", id);
+        return res.status(404).json({
+          success: false,
+          message: "Kullanıcı bulunamadı",
+          error: {
+            code: "USER_NOT_FOUND",
+            details: ["Bu ID ile kayıtlı kullanıcı bulunamadı."],
+          },
+        });
+      }
+    } catch (findError) {
+      console.error(
+        "user/deleteUserByID: Kullanıcı bulunurken hata oluştu:",
+        findError
+      );
+      // Kullanıcı bulunamadı ama silme işlemine devam edebiliriz
+      userToDelete = null;
+    }
+
+    // Now delete the user
+    let result;
+    try {
+      result = await User.deleteOne({ _id: id });
+
+      if (result.deletedCount === 0) {
+        console.info(
+          "user/deleteUserByID: Kullanıcı silinirken hata oluştu, ID:",
+          id
+        );
+        return res.status(500).json({
+          success: false,
+          message: "Kullanıcı silinemedi",
+          error: {
+            code: "DELETE_FAILED",
+            details: ["Kullanıcı silinemedi. Lütfen tekrar deneyin."],
+          },
+        });
+      }
+    } catch (deleteError) {
+      console.error(
+        "user/deleteUserByID: Kullanıcı silme hatası:",
+        deleteError
+      );
+      return res.status(500).json({
         success: false,
-        message: "Kullanıcı bulunamadı",
+        message: "Kullanıcı silinirken bir hata oluştu",
         error: {
-          code: "USER_NOT_FOUND",
-          details: ["Bu ID ile kayıtlı kullanıcı bulunamadı."],
+          code: "DELETE_ERROR",
+          details: ["Veritabanı işlemi sırasında bir hata oluştu."],
         },
       });
     }
+
     console.info("user/deleteUserByID: Kullanıcı silindi, ID:", id);
 
-    // Kullanıcı silindiği için çerezleri temizle
+    // MongoDB ObjectID'lerini string'e çevirip karşılaştır
+    // veya mongoose'un equals metodunu kullan
+    const isCurrentUser =
+      userToDelete &&
+      userToDelete._id &&
+      currentUserId &&
+      userToDelete._id.toString() === currentUserId.toString();
+
     console.info(
-      "user/deleteUserByID: Kullanıcı silindiği için çerezler temizleniyor"
+      `user/deleteUserByID: isCurrentUser kontrol edildi. Mevcut kullanıcı: ${currentUserId}, Silinen kullanıcı: ${id}, Sonuç: ${isCurrentUser}`
     );
-    clearAuthCookies(res);
+
+    // Add a flag to indicate if the deleted user is the current user
+    const responseData = {
+      isCurrentUser: isCurrentUser,
+      userName: userToDelete ? userToDelete.userName : "Kullanıcı",
+    };
+
+    // If the admin is deleting the currently logged-in user or their own account
+    // Clear the auth cookies
+    if (isCurrentUser) {
+      console.info(
+        "user/deleteUserByID: Admin kendi hesabını sildiği için çerezler temizleniyor"
+      );
+      clearAuthCookies(res);
+    }
 
     res.status(200).json({
       success: true,
       message: "Kullanıcı başarıyla silindi",
-      data: null,
+      data: responseData,
     });
   } catch (error) {
     console.error("user/deleteUserByID hata:", error);
@@ -536,12 +549,10 @@ const getAuthorsAndAdmins = async (req, res) => {
 module.exports = {
   getAllUserFromDatabase,
   deleteAllUsersFromDatabase,
-  deleteUserFromDatabase,
   updateUserFromDatabase,
   getUserByUserNameFromDatabase,
   getUserByID,
   deleteUserByID,
   updateUserRole,
   getAuthorsAndAdmins,
-  clearAuthCookies,
 };
