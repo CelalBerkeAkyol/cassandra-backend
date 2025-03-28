@@ -1,6 +1,23 @@
 const mongoose = require("mongoose");
 const User = require("../Models/UserSchema");
 
+// Yardımcı fonksiyon - Çerezleri temizler
+const clearAuthCookies = (res) => {
+  console.info("Kimlik doğrulama çerezleri temizleniyor");
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "Lax",
+    path: "/",
+  });
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "Lax",
+    path: "/",
+  });
+};
+
 const getAllUserFromDatabase = async (req, res) => {
   console.info(
     "user/getAllUserFromDatabase: Tüm kullanıcılar getirilmeye çalışılıyor."
@@ -106,6 +123,13 @@ const getUserByID = async (req, res) => {
     // Geçerli bir MongoDB ObjectId kontrolü
     if (!mongoose.Types.ObjectId.isValid(id)) {
       console.error("user/getUserByID: Geçersiz ID formatı:", id);
+
+      // Geçersiz ID - çerezleri temizle
+      console.info(
+        "user/getUserByID: Geçersiz ID formatı nedeniyle çerezler temizleniyor"
+      );
+      clearAuthCookies(res);
+
       return res.status(400).json({
         success: false,
         message: "Geçersiz kullanıcı ID formatı",
@@ -124,6 +148,13 @@ const getUserByID = async (req, res) => {
 
     if (!userList) {
       console.info("user/getUserByID: Kullanıcı bulunamadı, ID:", id);
+
+      // Kullanıcı bulunamadı - çerezleri temizle
+      console.info(
+        "user/getUserByID: Kullanıcı bulunamadığı için çerezler temizleniyor"
+      );
+      clearAuthCookies(res);
+
       return res.status(404).json({
         success: false,
         message: "Kullanıcı bulunamadı",
@@ -498,4 +529,5 @@ module.exports = {
   deleteUserByID,
   updateUserRole,
   getAuthorsAndAdmins,
+  clearAuthCookies,
 };
