@@ -16,6 +16,8 @@ const {
   isOwnerOrAdminForUser,
 } = require("../middlewares/authMiddleware.js"); // kullanıcı kontrolü burada yapılıyor
 
+const { cleanupUserData } = require("../middlewares/databaseMiddleware.js"); // Kullanıcı verilerini temizleme middleware'i
+
 // Authors and Admins endpoint - public access
 router.get("/team", getAuthorsAndAdmins);
 
@@ -30,7 +32,8 @@ router.get("/:id", getUserByID);
 router.route("/:id").put(isOwnerOrAdminForUser, updateUserFromDatabase);
 
 // Sadece admin erişebilen rotalar
-router.delete("/:id", isAdmin, deleteUserByID); // Belirli kullanıcıyı silme (sadece admin)
+// Silme işleminden önce, temizleme middleware'ini kullan
+router.delete("/:id", isAdmin, cleanupUserData, deleteUserByID); // Belirli kullanıcıyı silme (sadece admin)
 router.patch("/:id/role", isAdmin, updateUserRole); // Kullanıcı rolünü güncelleme (sadece admin)
 
 // Tüm kullanıcıları listeleme ve silme (sadece admin)
