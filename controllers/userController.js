@@ -367,6 +367,29 @@ const hardDeleteUserByID = async (req, res) => {
       });
     }
 
+    // MongoDB ObjectID'lerini string'e çevirip karşılaştır
+    const isCurrentUser =
+      userToDelete &&
+      userToDelete._id &&
+      currentUserId &&
+      userToDelete._id.toString() === currentUserId.toString();
+
+    // Kendini silmeye çalışan admin kontrolü
+    if (isCurrentUser && userToDelete.role === "admin") {
+      console.error(
+        "user/hardDeleteUserByID: Admin kendi hesabını silmeye çalışıyor, işlem durduruldu"
+      );
+      return res.status(400).json({
+        success: false,
+        message:
+          "Kendi hesabınızı tamamen silemezsiniz. Önce başka bir admin oluşturun.",
+        error: {
+          code: "SELF_DELETE_NOT_ALLOWED",
+          details: ["Admin kullanıcılar kendi hesaplarını tamamen silemezler."],
+        },
+      });
+    }
+
     // Kullanıcıyı kalıcı olarak sil
     const deleteResult = await User.findByIdAndDelete(id);
 
@@ -387,12 +410,21 @@ const hardDeleteUserByID = async (req, res) => {
 
     console.info("user/hardDeleteUserByID: Kullanıcı tamamen silindi, ID:", id);
 
+    // Eğer silinen kullanıcı mevcut oturum kullanıcısıysa çerezleri temizle
+    if (isCurrentUser) {
+      console.info(
+        "user/hardDeleteUserByID: Mevcut kullanıcı silindi, çerezler temizleniyor"
+      );
+      clearAuthCookies(res);
+    }
+
     // Yanıt döndür
     res.status(200).json({
       success: true,
       message: "Kullanıcı veritabanından tamamen silindi",
       data: {
         isHardDeleted: true,
+        isCurrentUser: isCurrentUser,
         userName: userToDelete.userName || "Kullanıcı",
       },
     });
