@@ -549,6 +549,107 @@ const getAuthorsAndAdmins = async (req, res) => {
   }
 };
 
+// Kullanıcı aktivasyon durumunu değiştirme (admin için)
+const toggleUserActivation = async (req, res) => {
+  console.info(
+    "user/toggleUserActivation: Kullanıcı aktivasyon durumu değiştiriliyor."
+  );
+  try {
+    const { userId } = req.params;
+    const { isActive } = req.body;
+
+    // Admin yetkisi kontrolü
+    if (req.user.role !== "admin") {
+      console.error(
+        "user/toggleUserActivation: Yetkisiz erişim, kullanıcı admin değil"
+      );
+      return res.status(403).json({
+        success: false,
+        message: "Bu işlem için admin yetkisine sahip olmanız gerekiyor",
+        error: {
+          code: "UNAUTHORIZED_ACCESS",
+          details: [
+            "Bu işlemi sadece admin rolüne sahip kullanıcılar yapabilir.",
+          ],
+        },
+      });
+    }
+
+    // ID kontrolü
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+      console.error("user/toggleUserActivation: Geçersiz ID formatı:", userId);
+      return res.status(400).json({
+        success: false,
+        message: "Geçersiz kullanıcı ID'si",
+        error: {
+          code: "INVALID_ID",
+          details: ["Girilen ID formatı geçersiz."],
+        },
+      });
+    }
+
+    // İstek gövdesinde isActive alanının varlığını kontrol et
+    if (isActive === undefined) {
+      console.error(
+        "user/toggleUserActivation: Aktivasyon durumu belirtilmedi"
+      );
+      return res.status(400).json({
+        success: false,
+        message: "Aktivasyon durumu belirtilmedi",
+        error: {
+          code: "MISSING_FIELD",
+          details: ["isActive alanı gereklidir."],
+        },
+      });
+    }
+
+    // Kullanıcıyı bul ve güncelle
+    const user = await User.findById(userId);
+
+    if (!user) {
+      console.info(
+        "user/toggleUserActivation: Kullanıcı bulunamadı, ID:",
+        userId
+      );
+      return res.status(404).json({
+        success: false,
+        message: "Kullanıcı bulunamadı",
+        error: {
+          code: "USER_NOT_FOUND",
+          details: ["Bu ID ile kayıtlı kullanıcı bulunamadı."],
+        },
+      });
+    }
+
+    // Kullanıcının aktivasyon durumunu güncelle
+    user.isActive = isActive;
+    await user.save();
+
+    console.info(
+      `user/toggleUserActivation: Kullanıcı ${
+        isActive ? "aktifleştirildi" : "deaktif edildi"
+      }, ID: ${userId}`
+    );
+
+    // Başarılı yanıt
+    return res.status(200).json({
+      success: true,
+      message: `Kullanıcı ${isActive ? "aktifleştirildi" : "deaktif edildi"}`,
+      data: user,
+    });
+  } catch (error) {
+    console.error("user/toggleUserActivation hata:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Kullanıcı aktivasyon durumu güncellenirken bir hata oluştu",
+      error: {
+        code: "SERVER_ERROR",
+        details: ["Veritabanı işlemi sırasında bir hata oluştu."],
+      },
+    });
+  }
+};
+
 module.exports = {
   getAllUserFromDatabase,
   deleteAllUsersFromDatabase,
@@ -558,4 +659,5 @@ module.exports = {
   deleteUserByID,
   updateUserRole,
   getAuthorsAndAdmins,
+  toggleUserActivation,
 };

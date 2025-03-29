@@ -9,6 +9,7 @@ const {
   deleteUserByID,
   updateUserRole,
   getAuthorsAndAdmins,
+  toggleUserActivation,
 } = require("../controllers/userController.js");
 const {
   getAccessToRoute,
@@ -36,6 +37,7 @@ router
 
 // Sadece admin erişebilen rotalar
 router.patch("/:id/role", isAdmin, updateUserRole); // Kullanıcı rolünü güncelleme (sadece admin)
+router.patch("/:userId/toggle-activation", isAdmin, toggleUserActivation); // Kullanıcı aktivasyon durumunu değiştirme (sadece admin)
 
 // Tüm kullanıcıları listeleme ve silme (sadece admin)
 router
