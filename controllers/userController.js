@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const User = require("../Models/UserSchema");
 const { clearAuthCookies } = require("../Helpers/tokenHelpers");
+const { isAdmin } = require("../middlewares/authMiddleware");
 
 const getAllUserFromDatabase = async (req, res) => {
   console.info(
@@ -334,23 +335,6 @@ const hardDeleteUserByID = async (req, res) => {
     });
   }
 
-  // Sadece admin kullanıcılar hard delete yapabilir
-  if (req.user.role !== "admin") {
-    console.error(
-      "user/hardDeleteUserByID: Yetkisiz işlem, sadece admin yapabilir"
-    );
-    return res.status(403).json({
-      success: false,
-      message: "Bu işlem için admin yetkisine sahip olmanız gerekiyor",
-      error: {
-        code: "UNAUTHORIZED_ACCESS",
-        details: [
-          "Bu işlemi sadece admin rolüne sahip kullanıcılar yapabilir.",
-        ],
-      },
-    });
-  }
-
   try {
     // Before deletion, get the user data for cleanup
     let userToDelete;
@@ -379,29 +363,6 @@ const hardDeleteUserByID = async (req, res) => {
         error: {
           code: "FIND_ERROR",
           details: ["Veritabanı işlemi sırasında bir hata oluştu."],
-        },
-      });
-    }
-
-    // MongoDB ObjectID'lerini string'e çevirip karşılaştır
-    const isCurrentUser =
-      userToDelete &&
-      userToDelete._id &&
-      currentUserId &&
-      userToDelete._id.toString() === currentUserId.toString();
-
-    // Kendini silmeye çalışan admin kontrolü
-    if (isCurrentUser) {
-      console.error(
-        "user/hardDeleteUserByID: Admin kendi hesabını silmeye çalışıyor, işlem durduruldu"
-      );
-      return res.status(400).json({
-        success: false,
-        message:
-          "Kendi hesabınızı tamamen silemezsiniz. Önce başka bir admin oluşturun.",
-        error: {
-          code: "SELF_DELETE_NOT_ALLOWED",
-          details: ["Admin kullanıcılar kendi hesaplarını tamamen silemezler."],
         },
       });
     }
@@ -712,23 +673,6 @@ const toggleUserActivation = async (req, res) => {
   try {
     const { userId } = req.params;
     const { isActive } = req.body;
-
-    // Admin yetkisi kontrolü
-    if (req.user.role !== "admin") {
-      console.error(
-        "user/toggleUserActivation: Yetkisiz erişim, kullanıcı admin değil"
-      );
-      return res.status(403).json({
-        success: false,
-        message: "Bu işlem için admin yetkisine sahip olmanız gerekiyor",
-        error: {
-          code: "UNAUTHORIZED_ACCESS",
-          details: [
-            "Bu işlemi sadece admin rolüne sahip kullanıcılar yapabilir.",
-          ],
-        },
-      });
-    }
 
     // ID kontrolü
     if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
