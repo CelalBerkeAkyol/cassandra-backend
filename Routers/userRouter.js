@@ -6,7 +6,8 @@ const {
   updateUserFromDatabase,
   getUserByUserNameFromDatabase,
   getUserByID,
-  deleteUserByID,
+  softDeleteUserByID,
+  hardDeleteUserByID,
   updateUserRole,
   getAuthorsAndAdmins,
   toggleUserActivation,
@@ -29,11 +30,14 @@ router.use(getAccessToRoute); // Tüm rotalarda erişim kontrolü
 router.get("/username/:username", getUserByUserNameFromDatabase);
 router.get("/:id", getUserByID);
 
-// Kullanıcı güncelleme ve silme - kullanıcının kendisi veya admin yapabilir
+// Kullanıcı güncelleme ve soft delete - kullanıcının kendisi veya admin yapabilir
 router
   .route("/:id")
   .put(isOwnerOrAdminForUser, updateUserFromDatabase)
-  .delete(isOwnerOrAdminForUser, cleanupUserData, deleteUserByID); // Kullanıcılar kendi hesaplarını silebilir
+  .delete(isOwnerOrAdminForUser, cleanupUserData, softDeleteUserByID); // Soft delete - isActive false yapar
+
+// Hard delete - sadece admin yapabilir
+router.delete("/:id/hard", isAdmin, cleanupUserData, hardDeleteUserByID); // Kullanıcıyı veritabanından tamamen siler
 
 // Sadece admin erişebilen rotalar
 router.patch("/:id/role", isAdmin, updateUserRole); // Kullanıcı rolünü güncelleme (sadece admin)

@@ -154,12 +154,13 @@ const getUserByID = async (req, res) => {
   }
 };
 
-const deleteUserByID = async (req, res) => {
+// Soft Delete: Kullanıcıyı deaktif eder, veriler silinmez
+const softDeleteUserByID = async (req, res) => {
   const id = req.params.id;
-  const currentUserId = req.user.id; // Get the current user's ID for comparison
+  const currentUserId = req.user.id;
 
   if (!id) {
-    console.error("user/deleteUserByID: ID sağlanmadı.");
+    console.error("user/softDeleteUserByID: ID sağlanmadı.");
     return res.status(400).json({
       success: false,
       message: "ID is required",
@@ -172,7 +173,7 @@ const deleteUserByID = async (req, res) => {
 
   // Geçerli MongoDB ID kontrolü yap
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    console.error("user/deleteUserByID: Geçersiz ID formatı:", id);
+    console.error("user/softDeleteUserByID: Geçersiz ID formatı:", id);
     return res.status(400).json({
       success: false,
       message: "Geçersiz kullanıcı ID formatı",
@@ -185,12 +186,12 @@ const deleteUserByID = async (req, res) => {
 
   try {
     // Before deletion, get the user data for cleanup
-    let userToDelete;
+    let userToDeactivate;
     try {
-      userToDelete = await User.findById(id);
+      userToDeactivate = await User.findById(id);
 
-      if (!userToDelete) {
-        console.info("user/deleteUserByID: Kullanıcı bulunamadı, ID:", id);
+      if (!userToDeactivate) {
+        console.info("user/softDeleteUserByID: Kullanıcı bulunamadı, ID:", id);
         return res.status(404).json({
           success: false,
           message: "Kullanıcı bulunamadı",
@@ -202,14 +203,31 @@ const deleteUserByID = async (req, res) => {
       }
     } catch (findError) {
       console.error(
-        "user/deleteUserByID: Kullanıcı bulunurken hata oluştu:",
+        "user/softDeleteUserByID: Kullanıcı bulunurken hata oluştu:",
         findError
       );
-      // Kullanıcı bulunamadı ama silme işlemine devam edebiliriz
-      userToDelete = null;
+      return res.status(500).json({
+        success: false,
+        message: "Kullanıcı bulunurken bir hata oluştu",
+        error: {
+          code: "FIND_ERROR",
+          details: ["Veritabanı işlemi sırasında bir hata oluştu."],
+        },
+      });
     }
 
-    // Silmek yerine kullanıcıyı deaktif et
+    // MongoDB ObjectID'lerini string'e çevirip karşılaştır
+    const isCurrentUser =
+      userToDeactivate &&
+      userToDeactivate._id &&
+      currentUserId &&
+      userToDeactivate._id.toString() === currentUserId.toString();
+
+    console.info(
+      `user/softDeleteUserByID: isCurrentUser kontrol edildi. Mevcut kullanıcı: ${currentUserId}, Deaktif edilen kullanıcı: ${id}, Sonuç: ${isCurrentUser}`
+    );
+
+    // Kullanıcıyı deaktif et
     let result;
     try {
       result = await User.findByIdAndUpdate(
@@ -217,71 +235,208 @@ const deleteUserByID = async (req, res) => {
         {
           isActive: false,
           deletedAt: new Date(),
-          refreshToken: null, // Tüm yenileme tokenlarını geçersiz kıl
+          // Eğer kullanıcı kendi hesabını deaktif ediyorsa refresh token'ı temizle
+          ...(isCurrentUser ? { refreshToken: null } : {}),
         },
         { new: true }
       );
 
       if (!result) {
         console.info(
-          "user/deleteUserByID: Kullanıcı deaktif edilirken hata oluştu, ID:",
+          "user/softDeleteUserByID: Kullanıcı deaktif edilirken hata oluştu, ID:",
           id
         );
         return res.status(500).json({
           success: false,
           message: "Kullanıcı deaktif edilemedi",
           error: {
-            code: "DELETE_FAILED",
+            code: "DEACTIVATE_FAILED",
             details: ["Kullanıcı deaktif edilemedi. Lütfen tekrar deneyin."],
           },
         });
       }
-    } catch (deleteError) {
+    } catch (deactivateError) {
       console.error(
-        "user/deleteUserByID: Kullanıcı deaktif etme hatası:",
-        deleteError
+        "user/softDeleteUserByID: Kullanıcı deaktif etme hatası:",
+        deactivateError
       );
       return res.status(500).json({
         success: false,
         message: "Kullanıcı deaktif edilirken bir hata oluştu",
         error: {
-          code: "DELETE_ERROR",
+          code: "DEACTIVATE_ERROR",
           details: ["Veritabanı işlemi sırasında bir hata oluştu."],
         },
       });
     }
 
-    console.info("user/deleteUserByID: Kullanıcı deaktif edildi, ID:", id);
+    console.info("user/softDeleteUserByID: Kullanıcı deaktif edildi, ID:", id);
+
+    // Add a flag to indicate if the deleted user is the current user
+    const responseData = {
+      isCurrentUser: isCurrentUser,
+      userName: userToDeactivate ? userToDeactivate.userName : "Kullanıcı",
+    };
+
+    // Eğer deaktif edilen kullanıcı oturum açmış kullanıcı ise çerezleri temizle
+    if (isCurrentUser) {
+      console.info(
+        "user/softDeleteUserByID: Mevcut kullanıcı deaktif edildi, çerezler temizleniyor"
+      );
+      clearAuthCookies(res);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Kullanıcı başarıyla deaktif edildi",
+      data: responseData,
+    });
+  } catch (error) {
+    console.error("user/softDeleteUserByID hata:", error);
+    res.status(500).json({
+      success: false,
+      message: "Sunucu hatası",
+      error: {
+        code: "SERVER_ERROR",
+        details: ["Kullanıcı deaktif edilirken bir hata oluştu."],
+      },
+    });
+  }
+};
+
+// Hard Delete: Kullanıcıyı veritabanından tamamen siler
+const hardDeleteUserByID = async (req, res) => {
+  const id = req.params.id;
+  const currentUserId = req.user.id;
+
+  if (!id) {
+    console.error("user/hardDeleteUserByID: ID sağlanmadı.");
+    return res.status(400).json({
+      success: false,
+      message: "ID is required",
+      error: {
+        code: "MISSING_ID",
+        details: ["Kullanıcı ID'si belirtilmedi."],
+      },
+    });
+  }
+
+  // Geçerli MongoDB ID kontrolü yap
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    console.error("user/hardDeleteUserByID: Geçersiz ID formatı:", id);
+    return res.status(400).json({
+      success: false,
+      message: "Geçersiz kullanıcı ID formatı",
+      error: {
+        code: "INVALID_ID",
+        details: ["Girilen ID formatı geçersiz."],
+      },
+    });
+  }
+
+  // Sadece admin kullanıcılar hard delete yapabilir
+  if (req.user.role !== "admin") {
+    console.error(
+      "user/hardDeleteUserByID: Yetkisiz işlem, sadece admin yapabilir"
+    );
+    return res.status(403).json({
+      success: false,
+      message: "Bu işlem için admin yetkisine sahip olmanız gerekiyor",
+      error: {
+        code: "UNAUTHORIZED_ACCESS",
+        details: [
+          "Bu işlemi sadece admin rolüne sahip kullanıcılar yapabilir.",
+        ],
+      },
+    });
+  }
+
+  try {
+    // Before deletion, get the user data for cleanup
+    let userToDelete;
+    try {
+      userToDelete = await User.findById(id);
+
+      if (!userToDelete) {
+        console.info("user/hardDeleteUserByID: Kullanıcı bulunamadı, ID:", id);
+        return res.status(404).json({
+          success: false,
+          message: "Kullanıcı bulunamadı",
+          error: {
+            code: "USER_NOT_FOUND",
+            details: ["Bu ID ile kayıtlı kullanıcı bulunamadı."],
+          },
+        });
+      }
+    } catch (findError) {
+      console.error(
+        "user/hardDeleteUserByID: Kullanıcı bulunurken hata oluştu:",
+        findError
+      );
+      return res.status(500).json({
+        success: false,
+        message: "Kullanıcı bulunurken bir hata oluştu",
+        error: {
+          code: "FIND_ERROR",
+          details: ["Veritabanı işlemi sırasında bir hata oluştu."],
+        },
+      });
+    }
 
     // MongoDB ObjectID'lerini string'e çevirip karşılaştır
-    // veya mongoose'un equals metodunu kullan
     const isCurrentUser =
       userToDelete &&
       userToDelete._id &&
       currentUserId &&
       userToDelete._id.toString() === currentUserId.toString();
 
-    console.info(
-      `user/deleteUserByID: isCurrentUser kontrol edildi. Mevcut kullanıcı: ${currentUserId}, Silinen kullanıcı: ${id}, Sonuç: ${isCurrentUser}`
-    );
+    // Kendini silmeye çalışan admin kontrolü
+    if (isCurrentUser) {
+      console.error(
+        "user/hardDeleteUserByID: Admin kendi hesabını silmeye çalışıyor, işlem durduruldu"
+      );
+      return res.status(400).json({
+        success: false,
+        message:
+          "Kendi hesabınızı tamamen silemezsiniz. Önce başka bir admin oluşturun.",
+        error: {
+          code: "SELF_DELETE_NOT_ALLOWED",
+          details: ["Admin kullanıcılar kendi hesaplarını tamamen silemezler."],
+        },
+      });
+    }
 
-    // Add a flag to indicate if the deleted user is the current user
-    const responseData = {
-      isCurrentUser: isCurrentUser,
-      userName: userToDelete ? userToDelete.userName : "Kullanıcı",
-    };
+    // Kullanıcıyı kalıcı olarak sil
+    const deleteResult = await User.findByIdAndDelete(id);
 
-    // Her durumda auth çerezlerini temizleyelim - silinen kullanıcının tarayıcısında
-    // bu işleme yaramayacak ama admin kendi hesabını siliyorsa işe yarar
-    clearAuthCookies(res);
+    if (!deleteResult) {
+      console.info(
+        "user/hardDeleteUserByID: Kullanıcı silinirken hata oluştu, ID:",
+        id
+      );
+      return res.status(500).json({
+        success: false,
+        message: "Kullanıcı silinemedi",
+        error: {
+          code: "DELETE_FAILED",
+          details: ["Kullanıcı silinemedi. Lütfen tekrar deneyin."],
+        },
+      });
+    }
 
+    console.info("user/hardDeleteUserByID: Kullanıcı tamamen silindi, ID:", id);
+
+    // Yanıt döndür
     res.status(200).json({
       success: true,
-      message: "Kullanıcı başarıyla silindi",
-      data: responseData,
+      message: "Kullanıcı veritabanından tamamen silindi",
+      data: {
+        isHardDeleted: true,
+        userName: userToDelete.userName || "Kullanıcı",
+      },
     });
   } catch (error) {
-    console.error("user/deleteUserByID hata:", error);
+    console.error("user/hardDeleteUserByID hata:", error);
     res.status(500).json({
       success: false,
       message: "Sunucu hatası",
@@ -656,7 +811,8 @@ module.exports = {
   updateUserFromDatabase,
   getUserByUserNameFromDatabase,
   getUserByID,
-  deleteUserByID,
+  softDeleteUserByID,
+  hardDeleteUserByID,
   updateUserRole,
   getAuthorsAndAdmins,
   toggleUserActivation,
