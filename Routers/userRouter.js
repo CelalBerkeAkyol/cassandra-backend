@@ -28,12 +28,13 @@ router.use(getAccessToRoute); // Tüm rotalarda erişim kontrolü
 router.get("/username/:username", getUserByUserNameFromDatabase);
 router.get("/:id", getUserByID);
 
-// Kullanıcı güncelleme - kullanıcının kendisi veya admin yapabilir
-router.route("/:id").put(isOwnerOrAdminForUser, updateUserFromDatabase);
+// Kullanıcı güncelleme ve silme - kullanıcının kendisi veya admin yapabilir
+router
+  .route("/:id")
+  .put(isOwnerOrAdminForUser, updateUserFromDatabase)
+  .delete(isOwnerOrAdminForUser, cleanupUserData, deleteUserByID); // Kullanıcılar kendi hesaplarını silebilir
 
 // Sadece admin erişebilen rotalar
-// Silme işleminden önce, temizleme middleware'ini kullan
-router.delete("/:id", isAdmin, cleanupUserData, deleteUserByID); // Belirli kullanıcıyı silme (sadece admin)
 router.patch("/:id/role", isAdmin, updateUserRole); // Kullanıcı rolünü güncelleme (sadece admin)
 
 // Tüm kullanıcıları listeleme ve silme (sadece admin)

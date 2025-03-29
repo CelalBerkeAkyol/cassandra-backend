@@ -50,6 +50,19 @@ const login = async (req, res) => {
       });
     }
 
+    // Kullanıcının aktif olup olmadığını kontrol et
+    if (!user.isActive) {
+      console.warn("auth/login: Deaktif edilmiş hesap:", email);
+      return res.status(403).json({
+        success: false,
+        message: "Hesabınız deaktif edilmiş",
+        error: {
+          code: "ACCOUNT_DEACTIVATED",
+          details: ["Hesabınız devre dışı bırakılmıştır."],
+        },
+      });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       console.warn("auth/login: Şifre eşleşmedi:", email);

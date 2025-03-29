@@ -1,7 +1,9 @@
 // /middlewares/authMiddleware.js
 const jwt = require("jsonwebtoken");
+const User = require("../Models/UserSchema");
+const { clearAuthCookies } = require("../Helpers/tokenHelpers");
 
-const getAccessToRoute = (req, res, next) => {
+const getAccessToRoute = async (req, res, next) => {
   const access_token = req.cookies.token;
   if (!access_token) {
     console.error("getAccessToRoute: Token bulunamadı.");
@@ -16,11 +18,41 @@ const getAccessToRoute = (req, res, next) => {
   }
   try {
     const decoded = jwt.verify(access_token, process.env.JWT_SECRET);
+
+    // Kullanıcının aktif olup olmadığını kontrol et
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      console.error("getAccessToRoute: Kullanıcı bulunamadı.");
+      clearAuthCookies(res);
+      return res.status(401).json({
+        success: false,
+        message: "Kullanıcı bulunamadı.",
+        error: {
+          code: "USER_NOT_FOUND",
+          details: ["Hesabınız mevcut değil. Lütfen tekrar kayıt olun."],
+        },
+      });
+    }
+
+    if (!user.isActive) {
+      console.error("getAccessToRoute: Deaktif edilmiş hesap.");
+      clearAuthCookies(res);
+      return res.status(401).json({
+        success: false,
+        message: "Hesabınız deaktif edilmiş.",
+        error: {
+          code: "ACCOUNT_DEACTIVATED",
+          details: ["Hesabınız devre dışı bırakılmıştır."],
+        },
+      });
+    }
+
     req.user = decoded;
     console.info("getAccessToRoute: Token doğrulandı.");
     return next();
   } catch (err) {
     console.error("getAccessToRoute: Geçersiz token.", err);
+    clearAuthCookies(res);
     return res.status(401).json({
       success: false,
       message: "Oturumunuz sona ermiş olabilir.",
@@ -135,14 +167,20 @@ const isOwnerOrAdminForUser = (req, res, next) => {
   const userId = req.user.id;
   const targetUserId = req.params.id;
 
+  console.info(`isOwnerOrAdminForUser: 
+    Kullanıcı: ${userId} (${typeof userId})
+    Hedef: ${targetUserId} (${typeof targetUserId})
+    Rol: ${userRole}
+  `);
+
   // Admin her türlü erişebilir
   if (userRole === "admin") {
     console.info("isOwnerOrAdminForUser: Admin yetkisi doğrulandı.");
     return next();
   }
 
-  // Kullanıcı kendi bilgilerine erişebilir
-  if (userId === targetUserId) {
+  // Kullanıcı kendi bilgilerine erişebilir - String karşılaştırma yapıyoruz
+  if (userId && targetUserId && String(userId) === String(targetUserId)) {
     console.info(
       "isOwnerOrAdminForUser: Kullanıcı kendi bilgilerine erişiyor."
     );

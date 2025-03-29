@@ -54,6 +54,10 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false, // E-posta doğrulandı mı
     },
+    isActive: {
+      type: Boolean,
+      default: true, // Kullanıcı hesabı aktif mi
+    },
 
     lastLogin: {
       type: Date,

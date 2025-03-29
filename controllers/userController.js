@@ -209,33 +209,41 @@ const deleteUserByID = async (req, res) => {
       userToDelete = null;
     }
 
-    // Now delete the user
+    // Silmek yerine kullanıcıyı deaktif et
     let result;
     try {
-      result = await User.deleteOne({ _id: id });
+      result = await User.findByIdAndUpdate(
+        id,
+        {
+          isActive: false,
+          deletedAt: new Date(),
+          refreshToken: null, // Tüm yenileme tokenlarını geçersiz kıl
+        },
+        { new: true }
+      );
 
-      if (result.deletedCount === 0) {
+      if (!result) {
         console.info(
-          "user/deleteUserByID: Kullanıcı silinirken hata oluştu, ID:",
+          "user/deleteUserByID: Kullanıcı deaktif edilirken hata oluştu, ID:",
           id
         );
         return res.status(500).json({
           success: false,
-          message: "Kullanıcı silinemedi",
+          message: "Kullanıcı deaktif edilemedi",
           error: {
             code: "DELETE_FAILED",
-            details: ["Kullanıcı silinemedi. Lütfen tekrar deneyin."],
+            details: ["Kullanıcı deaktif edilemedi. Lütfen tekrar deneyin."],
           },
         });
       }
     } catch (deleteError) {
       console.error(
-        "user/deleteUserByID: Kullanıcı silme hatası:",
+        "user/deleteUserByID: Kullanıcı deaktif etme hatası:",
         deleteError
       );
       return res.status(500).json({
         success: false,
-        message: "Kullanıcı silinirken bir hata oluştu",
+        message: "Kullanıcı deaktif edilirken bir hata oluştu",
         error: {
           code: "DELETE_ERROR",
           details: ["Veritabanı işlemi sırasında bir hata oluştu."],
@@ -243,7 +251,7 @@ const deleteUserByID = async (req, res) => {
       });
     }
 
-    console.info("user/deleteUserByID: Kullanıcı silindi, ID:", id);
+    console.info("user/deleteUserByID: Kullanıcı deaktif edildi, ID:", id);
 
     // MongoDB ObjectID'lerini string'e çevirip karşılaştır
     // veya mongoose'un equals metodunu kullan
@@ -263,14 +271,9 @@ const deleteUserByID = async (req, res) => {
       userName: userToDelete ? userToDelete.userName : "Kullanıcı",
     };
 
-    // If the admin is deleting the currently logged-in user or their own account
-    // Clear the auth cookies
-    if (isCurrentUser) {
-      console.info(
-        "user/deleteUserByID: Admin kendi hesabını sildiği için çerezler temizleniyor"
-      );
-      clearAuthCookies(res);
-    }
+    // Her durumda auth çerezlerini temizleyelim - silinen kullanıcının tarayıcısında
+    // bu işleme yaramayacak ama admin kendi hesabını siliyorsa işe yarar
+    clearAuthCookies(res);
 
     res.status(200).json({
       success: true,
