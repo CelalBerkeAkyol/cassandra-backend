@@ -15,4 +15,24 @@ const getAccessTokenFromHeader = (req) => {
   return null;
 };
 
-module.exports = { getAccessTokenFromHeader };
+/**
+ * Kimlik doğrulama çerezlerini temizler
+ * @param {Object} res - Express response objesi
+ */
+const clearAuthCookies = (res) => {
+  console.info("Kimlik doğrulama çerezleri temizleniyor");
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "Lax",
+    path: "/",
+  });
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "Lax",
+    path: "/",
+  });
+};
+
+module.exports = { getAccessTokenFromHeader, clearAuthCookies };

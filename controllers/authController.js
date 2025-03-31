@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const User = require("../Models/UserSchema");
+const { clearAuthCookies } = require("../Helpers/tokenHelpers");
 
 // Token oluşturma fonksiyonu
 const generateTokens = (user) => {
@@ -45,6 +46,19 @@ const login = async (req, res) => {
         error: {
           code: "USER_NOT_FOUND",
           details: ["Bu email adresi ile kayıtlı kullanıcı bulunamadı."],
+        },
+      });
+    }
+
+    // Kullanıcının aktif olup olmadığını kontrol et
+    if (!user.isActive) {
+      console.warn("auth/login: Deaktif edilmiş hesap:", email);
+      return res.status(403).json({
+        success: false,
+        message: "Hesabınız deaktif edilmiş",
+        error: {
+          code: "ACCOUNT_DEACTIVATED",
+          details: ["Hesabınız devre dışı bırakılmıştır."],
         },
       });
     }
@@ -125,18 +139,8 @@ const logout = async (req, res) => {
     user.refreshToken = null;
     await user.save();
 
-    res.clearCookie("token", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax",
-      path: "/",
-    });
-    res.clearCookie("refreshToken", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax",
-      path: "/",
-    });
+    // Çerezleri temizle
+    clearAuthCookies(res);
 
     console.info("auth/logout: Çıkış başarılı.");
     res.status(200).json({
