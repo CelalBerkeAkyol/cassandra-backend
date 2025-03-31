@@ -82,14 +82,14 @@ const login = async (req, res) => {
 
     res.cookie("token", accessToken, {
       httpOnly: true,
-      secure: false,
-      sameSite: "Lax",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "None",
       maxAge: 24 * 60 * 60 * 1000,
     });
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: false,
-      sameSite: "Lax",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "None",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -192,14 +192,14 @@ const register = async (req, res) => {
     res.cookie("token", accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax",
+      sameSite: "None",
       maxAge: 24 * 60 * 60 * 1000,
     });
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax",
+      sameSite: "None",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -254,6 +254,7 @@ const refreshAccessToken = async (req, res) => {
 
     if (!user) {
       console.warn("auth/refreshAccessToken: Geçersiz refresh token.");
+      clearAuthCookies(res);
       return res.status(403).json({
         success: false,
         message: "Geçersiz Refresh Token",
@@ -264,27 +265,45 @@ const refreshAccessToken = async (req, res) => {
       });
     }
 
-    const newAccessToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "15m",
-    });
+    const newAccessToken = jwt.sign(
+      {
+        id: user._id,
+        username: user.userName,
+        role: user.role,
+        email: user.email,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "15m",
+      }
+    );
 
     res.cookie("token", newAccessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
+      sameSite: "None",
       maxAge: 15 * 60 * 1000,
     });
-    // To-Do acces tokenları response olarak döndürme
+
     console.info("auth/refreshAccessToken: Yeni access token oluşturuldu.");
     res.status(200).json({
       success: true,
       message: "Yeni Access Token oluşturuldu",
       data: {
+        user: {
+          id: user._id,
+          email: user.email,
+          fullName: user.fullName,
+          role: user.role,
+          username: user.userName,
+        },
         token: newAccessToken,
       },
     });
   } catch (error) {
     console.error("auth/refreshAccessToken hata:", error);
-    res.status(403).json({
+    clearAuthCookies(res);
+    return res.status(403).json({
       success: false,
       message: "Geçersiz veya süresi dolmuş Refresh Token",
       error: {
