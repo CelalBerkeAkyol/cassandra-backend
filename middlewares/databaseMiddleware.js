@@ -41,9 +41,17 @@ const checkPostId = async (req, res, next) => {
 const cleanupUserData = async (req, res, next) => {
   const userId = req.params.id;
 
-  // Skip if userId is not provided
+  // ID kontrolü
   if (!userId) {
-    return next();
+    console.error("cleanupUserData: Kullanıcı ID'si sağlanmadı");
+    return res.status(400).json({
+      success: false,
+      message: "Kullanıcı ID'si sağlanmadı",
+      error: {
+        code: "USER_ID_NOT_PROVIDED",
+        details: ["Kullanıcı ID'si sağlanmadı."],
+      },
+    });
   }
 
   try {
