@@ -56,7 +56,7 @@ const login = async (req, res) => {
         success: false,
         message: "E-posta doğrulanmadı",
         error: {
-          code: "USER_NOT_VERIFIED",
+          code: "ACCOUNT_NOT_VERIFIED",
           details: [
             "E-posta doğrulanmadı, e-postanızı kontrol edin veya doğrulama e-postasını yeniden gönderin.",
           ],
