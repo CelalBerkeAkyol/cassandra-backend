@@ -50,6 +50,20 @@ const login = async (req, res) => {
       });
     }
 
+    if (!user.isVerified) {
+      console.warn("auth/login: Kullanıcı bulunamadı:", email);
+      return res.status(403).json({
+        success: false,
+        message: "E-posta doğrulanmadı",
+        error: {
+          code: "USER_NOT_VERIFIED",
+          details: [
+            "E-posta doğrulanmadı, e-postanızı kontrol edin veya doğrulama e-postasını yeniden gönderin.",
+          ],
+        },
+      });
+    }
+
     // Kullanıcının aktif olup olmadığını kontrol et
     if (!user.isActive) {
       console.warn("auth/login: Deaktif edilmiş hesap:", email);
