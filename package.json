@@ -6,9 +6,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon server.js"
   },
-  "author": "",
+  "author": "Celal Berke Akyol",
   "license": "ISC",
-  "description": "",
+  "description": "Finance Blog Backend",
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
@@ -21,6 +21,7 @@
     "multer": "^1.4.5-lts.2",
     "nodemailer": "^6.10.0",
     "nodemon": "^3.1.7",
+    "multer": "^1.4.5-lts.1",
     "sanitize-html": "^2.13.1",
     "slugify": "^1.6.6"
   }

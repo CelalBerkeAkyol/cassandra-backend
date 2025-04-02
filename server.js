@@ -9,15 +9,22 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // CORS ayarları - env dosyasından origins alınıyor
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(",")
-  : ["http://localhost:5173"];
+const allowedOrigins = process.env.ALLOWED_ORIGINS.split(",");
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: function (origin, callback) {
+      // Tarayıcıdan olmayan (null origin) veya izin verilen originler için izin ver
+      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error("CORS policy: Not allowed"));
+      }
+    },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     credentials: true, // Cookie gönderimine izin verir
+    allowedHeaders: ["Content-Type", "Authorization"],
+    optionsSuccessStatus: 200,
   })
 );
 
