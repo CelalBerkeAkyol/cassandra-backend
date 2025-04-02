@@ -360,6 +360,38 @@ const verifyEmail = async (req, res) => {
     user.vefiricationToken = null;
     user.verificationTokenExpiresAt = null;
     await user.save();
+
+    // Token'ları cookie'ye yaz
+    res.cookie("token", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    console.info(
+      "auth/register: Yeni kullanıcı oluşturuldu ve token'lar ayarlandı:",
+      user.email
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Yeni kullanıcı başarıyla oluşturuldu ve oturum açıldı",
+      data: {
+        user: {
+          id: user._id,
+          userName: user.userName,
+          role: user.role,
+        },
+      },
+    });
   } catch (error) {
     console.error("auth/verifyEmail hata:", error);
     res.status(401).json({
