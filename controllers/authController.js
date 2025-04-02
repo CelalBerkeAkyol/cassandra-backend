@@ -213,7 +213,6 @@ const register = async (req, res) => {
 
     sendVerificationEmail(user, res);
 
-
     console.info(
       "auth/register: Yeni kullanıcı oluşturuldu ve token'lar ayarlandı:",
       newUser.email
@@ -363,7 +362,7 @@ const verifyEmail = async (req, res) => {
   try {
     const { token } = req.query;
 
-    const user = await User.findByOne({ verificationToken: token });
+    const user = await User.findOne({ verificationToken: token });
     if (Date.now() - user.verificationTokenExpiresAt > 0) {
       return res.status(400).json({
         success: false,
@@ -377,9 +376,11 @@ const verifyEmail = async (req, res) => {
       });
     }
     user.isVerified = true;
-    user.vefiricationToken = null;
+    user.verificationToken = null;
     user.verificationTokenExpiresAt = null;
     await user.save();
+
+    const { accessToken, refreshToken } = generateTokens(user);
 
     // Token'ları cookie'ye yaz
     res.cookie("token", accessToken, {
