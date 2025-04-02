@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const User = require("../Models/UserSchema");
 const { clearAuthCookies } = require("../Helpers/tokenHelpers");
+const { sendVerificationEmail } = require("../Helpers/emailHelpers");
 
 // Token oluşturma fonksiyonu
 const generateTokens = (user) => {
@@ -202,20 +203,9 @@ const register = async (req, res) => {
     newUser.refreshToken = refreshToken;
     await newUser.save();
 
-    // Token'ları cookie'ye yaz
-    res.cookie("token", accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax",
-      maxAge: 24 * 60 * 60 * 1000,
-    });
+    const user = await User.findOne({ email });
 
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    sendVerificationEmail(user, res);
 
     console.info(
       "auth/register: Yeni kullanıcı oluşturuldu ve token'lar ayarlandı:",
@@ -224,14 +214,8 @@ const register = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "Yeni kullanıcı başarıyla oluşturuldu ve oturum açıldı",
-      data: {
-        user: {
-          id: newUser._id,
-          userName: newUser.userName,
-          role: newUser.role,
-        },
-      },
+      message:
+        "Hesap başarıyla oluşturuldu, hesabınızı doğrulamak için e-postanızı kontrol edin. Doğrulama e-postası 2 saat içinde geçerliliğini yitirecektir.",
     });
   } catch (error) {
     console.error("auth/register hata:", error);
@@ -349,10 +333,45 @@ const verifyToken = async (req, res) => {
   }
 };
 
+const verifyEmail = async (req, res) => {
+  try {
+    const { token } = req.query;
+
+    const user = await User.findByOne({ verificationToken: token });
+    if (Date.now() - user.verificationTokenExpiresAt > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Token süresi doldu.",
+        error: {
+          code: "INVALID_TOKEN",
+          details: [
+            "Doğrulama tokeni süresi doldu, doğrulama e-postasını yeniden gönderin.",
+          ],
+        },
+      });
+    }
+    user.isVerified = true;
+    user.vefiricationToken = null;
+    user.verificationTokenExpiresAt = null;
+    await user.save();
+  } catch (error) {
+    console.error("auth/verifyEmail hata:", error);
+    res.status(401).json({
+      success: false,
+      message: "Geçersiz token",
+      error: {
+        code: "INVALID_TOKEN",
+        details: ["Geçersiz veya süresi dolmuş token."],
+      },
+    });
+  }
+};
+
 module.exports = {
   login,
   refreshAccessToken,
   verifyToken,
   logout,
   register,
+  verifyEmail,
 };

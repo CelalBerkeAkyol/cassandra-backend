@@ -17,11 +17,16 @@ const sendVerificationEmail = async (user, res) => {
       subject: "Verify your Email | Fin AI",
       text: `Please verify your email by clicking this link : \n${
         process.env.FRONTEND_URL || "http://localhost:5173"
-      }/verify-email?token=${token}`,
+      }/verify-email?token=${token}\n\nLink expires in 2 hours\n\nFin Ai`,
     };
     const token = crypto.randomBytes(32).toString("hex");
     user.verificationToken = token;
-    user.verificationTokenExpiresAt = await transporter.sendMail(mailOptions);
+    user.verificationTokenExpiresAt = Date.now() * 36000000 * 2; // 2 hours
+    await transporter.sendMail(mailOptions, (err, res) => {
+      if (err) throw new Error("Sending verification email failed");
+    });
+    await user.save();
+    return { token, expiresAt };
   } catch (error) {
     return res
       .status(400)
