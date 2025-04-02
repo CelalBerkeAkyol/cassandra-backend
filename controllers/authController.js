@@ -180,6 +180,12 @@ const register = async (req, res) => {
   console.info("auth/register: Kayıt işlemi başladı.");
   const { userName, email, password } = req.body;
 
+  if (!userName || !email || !password)
+    return res.status(400).json({
+      success: false,
+      message: "Kullanıcı adı, şifre ve e-posta alanları gereklidir.",
+    });
+
   try {
     const existingUser = await User.findOne({ email });
     if (existingUser) {

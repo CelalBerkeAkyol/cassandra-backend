@@ -1,16 +1,18 @@
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    email: process.env.GOOGLE_MAIL,
-    password: process.env.GOOGLE_PASS,
-  },
-});
-
 const sendVerificationEmail = async (user, res) => {
   try {
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        email: process.env.GOOGLE_MAIL,
+        password: process.env.GOOGLE_PASS,
+      },
+    });
+
+    const token = crypto.randomBytes(32).toString("hex");
+
     const mailOptions = {
       from: process.env.GOOGLE_MAIL,
       to: user.email,
@@ -19,18 +21,20 @@ const sendVerificationEmail = async (user, res) => {
         process.env.FRONTEND_URL || "http://localhost:5173"
       }/verify-email?token=${token}\n\nLink expires in 2 hours\n\nFin Ai`,
     };
-    const token = crypto.randomBytes(32).toString("hex");
+
     user.verificationToken = token;
-    user.verificationTokenExpiresAt = Date.now() * 36000000 * 2; // 2 hours
+    user.verificationTokenExpiresAt = Date.now() + 2 * 36000000; // 2 hours
+
     await transporter.sendMail(mailOptions, (err, res) => {
       if (err) throw new Error("Sending verification email failed");
     });
     await user.save();
-    return { token, expiresAt };
   } catch (error) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Doğrulama e-postası gönderilemedi" });
+    console.error("auth/sendVerification Email hata:", error);
+    res.status(400).json({
+      success: false,
+      message: "Doğrulama e-postası gönderilemedi",
+    });
   }
 };
 
