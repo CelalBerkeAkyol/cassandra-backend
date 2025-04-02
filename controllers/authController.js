@@ -404,6 +404,32 @@ const verifyEmail = async (req, res) => {
     });
   }
 };
+const resendVerificationEmail = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email)
+      return res
+        .status(400)
+        .json({ success: false, message: "Email is required" });
+    const user = await User.findOne({ email });
+    if (!user)
+      return res.status(400).json({
+        success: false,
+        message: "Kullanıcı bulunamadı",
+        error: {
+          code: "USER_NOT_FOUND",
+          details: ["Bu email adresi ile kayıtlı kullanıcı bulunamadı."],
+        },
+      });
+    sendVerificationEmail(user, res);
+  } catch (error) {
+    console.error("auth/resendVerificationEmail hata:", error);
+    return res.status(400).json({
+      success: false,
+      message: "Doğrulama e-postası gönderilirken hata oluştu.",
+    });
+  }
+};
 
 module.exports = {
   login,
@@ -412,4 +438,5 @@ module.exports = {
   logout,
   register,
   verifyEmail,
+  resendVerificationEmail,
 };

@@ -10,6 +10,7 @@ const {
   logout,
   register,
   verifyEmail,
+  resendVerificationEmail,
 } = require("../controllers/authController"); // token burada oluşturuluyor
 
 // admin tarafından post isteği ile veri tabanına kullanıcı ekleme
@@ -18,6 +19,7 @@ router.post("/login", login);
 router.post("/logout", getAccessToRoute, logout);
 
 router.get("/verify-email", verifyEmail);
+router.post("/resend-email-verification", resendVerificationEmail);
 
 // buraya refresh işlemleri atılacak
 router.post("/refresh-token", getAccessToRoute, refreshAccessToken);
