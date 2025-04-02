@@ -422,6 +422,11 @@ const resendVerificationEmail = async (req, res) => {
         },
       });
     sendVerificationEmail(user, res);
+    res.status(201).json({
+      success: true,
+      message:
+        "Hesap başarıyla oluşturuldu, hesabınızı doğrulamak için e-postanızı kontrol edin. Doğrulama e-postası 2 saat içinde geçerliliğini yitirecektir.",
+    });
   } catch (error) {
     console.error("auth/resendVerificationEmail hata:", error);
     return res.status(400).json({

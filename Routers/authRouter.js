@@ -19,7 +19,7 @@ router.post("/login", login);
 router.post("/logout", getAccessToRoute, logout);
 
 router.get("/verify-email", verifyEmail);
-router.post("/resend-email-verification", resendVerificationEmail);
+router.post("/resend-verification-email", resendVerificationEmail);
 
 // buraya refresh işlemleri atılacak
 router.post("/refresh-token", getAccessToRoute, refreshAccessToken);
