@@ -4,12 +4,12 @@ const User = require("../Models/UserSchema");
 const { clearAuthCookies } = require("../Helpers/tokenHelpers");
 const { sendVerificationEmail } = require("../Helpers/emailHelpers");
 
-// Cookie ayarları - Proxy kullanıldığında aynı origin olacak
+// Cookie ayarları - Production için cross-site desteği
 const cookieOptions = {
   httpOnly: true,
-  sameSite: "Lax", // Proxy kullanıyoruz - aynı site olacak
+  sameSite: "None", // Cross-site istekler için gerekli
   path: "/",
-  // secure değeri otomatik ayarlanacak - HTTP için false, HTTPS için true
+  // domain değeri production ve development ortamları için dinamik olarak ayarlanır
 };
 
 // Token oluşturma fonksiyonu

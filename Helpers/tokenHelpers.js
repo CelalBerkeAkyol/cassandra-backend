@@ -22,12 +22,11 @@ const getAccessTokenFromHeader = (req) => {
 const clearAuthCookies = (res) => {
   console.info("Kimlik doğrulama çerezleri temizleniyor");
 
-  // Cookie ayarları - Proxy kullanıldığında aynı origin olacak
+  // Cookie ayarları - Cross-site uyumlu
   const cookieOptions = {
     httpOnly: true,
-    sameSite: "Lax", // Proxy kullanıyoruz - aynı site olacak
+    sameSite: "None",
     path: "/",
-    // secure değeri otomatik ayarlanacak - HTTP için false, HTTPS için true
   };
 
   res.clearCookie("token", cookieOptions);

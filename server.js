@@ -17,7 +17,8 @@ app.use(
   cors({
     origin: function (origin, callback) {
       // Tarayıcıdan olmayan (null origin) veya izin verilen originler için izin ver
-      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      // Development modunda tüm originler için izin ver
+      if (isDevelopment || !origin || allowedOrigins.indexOf(origin) !== -1) {
         callback(null, true);
       } else {
         console.warn("CORS denied for origin:", origin);
@@ -26,8 +27,13 @@ app.use(
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     credentials: true, // Cookie gönderimine izin verir
-    allowedHeaders: ["Content-Type", "Authorization", "X-Refresh-Token"],
-    exposedHeaders: ["Set-Cookie"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Refresh-Token",
+      "x-csrf-token",
+    ],
+    exposedHeaders: ["Set-Cookie", "x-csrf-token"],
     optionsSuccessStatus: 200,
   })
 );
