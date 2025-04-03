@@ -58,7 +58,14 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true, // Kullanıcı hesabı aktif mi
     },
-
+    verificationToken: {
+      type: String,
+      default: "",
+    },
+    verificationTokenExpiresAt: {
+      type: Date,
+      default: null,
+    },
     lastLogin: {
       type: Date,
     },

@@ -33,7 +33,7 @@ The API uses **JWT tokens** (access and refresh tokens) stored primarily as **HT
 ## 3. Base URL
 
 ```
-https://localhost:5173/blog
+https://localhost:5173/api
 ```
 
 ---
