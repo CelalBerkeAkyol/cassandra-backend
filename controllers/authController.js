@@ -4,9 +4,13 @@ const User = require("../Models/UserSchema");
 const { clearAuthCookies } = require("../Helpers/tokenHelpers");
 const { sendVerificationEmail } = require("../Helpers/emailHelpers");
 
+// Environment kontrolü
+const isDevelopment = process.env.NODE_ENV !== "production";
+
 // Cookie ayarları - Production için cross-site desteği
 const cookieOptions = {
   httpOnly: true,
+  secure: !isDevelopment, // Production'da true, development'ta false
   sameSite: "None", // Cross-site istekler için gerekli
   path: "/",
   // domain değeri production ve development ortamları için dinamik olarak ayarlanır
