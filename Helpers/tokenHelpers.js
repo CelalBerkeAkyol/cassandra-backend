@@ -22,9 +22,13 @@ const getAccessTokenFromHeader = (req) => {
 const clearAuthCookies = (res) => {
   console.info("Kimlik doğrulama çerezleri temizleniyor");
 
+  // Environment kontrolü
+  const isDevelopment = process.env.NODE_ENV !== "production";
+
   // Cookie ayarları - Cross-site uyumlu
   const cookieOptions = {
     httpOnly: true,
+    secure: !isDevelopment, // Production'da true, development'ta false
     sameSite: "None",
     path: "/",
   };
