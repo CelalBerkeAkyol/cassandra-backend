@@ -1,7 +1,8 @@
 const jwt = require("jsonwebtoken");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const User = require("../Models/UserSchema");
 const { clearAuthCookies } = require("../Helpers/tokenHelpers");
+const { sendVerificationEmail } = require("../Helpers/emailHelpers");
 
 // Token oluşturma fonksiyonu
 const generateTokens = (user) => {
@@ -46,6 +47,20 @@ const login = async (req, res) => {
         error: {
           code: "USER_NOT_FOUND",
           details: ["Bu email adresi ile kayıtlı kullanıcı bulunamadı."],
+        },
+      });
+    }
+
+    if (!user.isVerified) {
+      console.warn("auth/login: Kullanıcı bulunamadı:", email);
+      return res.status(403).json({
+        success: false,
+        message: "E-posta doğrulanmadı",
+        error: {
+          code: "ACCOUNT_NOT_VERIFIED",
+          details: [
+            "E-posta doğrulanmadı, e-postanızı kontrol edin veya doğrulama e-postasını yeniden gönderin.",
+          ],
         },
       });
     }
@@ -165,6 +180,12 @@ const register = async (req, res) => {
   console.info("auth/register: Kayıt işlemi başladı.");
   const { userName, email, password } = req.body;
 
+  if (!userName || !email || !password)
+    return res.status(400).json({
+      success: false,
+      message: "Kullanıcı adı, şifre ve e-posta alanları gereklidir.",
+    });
+
   try {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -188,20 +209,9 @@ const register = async (req, res) => {
     newUser.refreshToken = refreshToken;
     await newUser.save();
 
-    // Token'ları cookie'ye yaz
-    res.cookie("token", accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "None",
-      maxAge: 24 * 60 * 60 * 1000,
-    });
+    const user = await User.findOne({ email });
 
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "None",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    sendVerificationEmail(user, res);
 
     console.info(
       "auth/register: Yeni kullanıcı oluşturuldu ve token'lar ayarlandı:",
@@ -210,14 +220,8 @@ const register = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "Yeni kullanıcı başarıyla oluşturuldu ve oturum açıldı",
-      data: {
-        user: {
-          id: newUser._id,
-          userName: newUser.userName,
-          role: newUser.role,
-        },
-      },
+      message:
+        "Hesap başarıyla oluşturuldu, hesabınızı doğrulamak için e-postanızı kontrol edin. Doğrulama e-postası 2 saat içinde geçerliliğini yitirecektir.",
     });
   } catch (error) {
     console.error("auth/register hata:", error);
@@ -354,10 +358,111 @@ const verifyToken = async (req, res) => {
   }
 };
 
+const verifyEmail = async (req, res) => {
+  try {
+    const { token } = req.query;
+
+    const user = await User.findOne({ verificationToken: token });
+    if (Date.now() - user.verificationTokenExpiresAt > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Token süresi doldu.",
+        error: {
+          code: "INVALID_TOKEN",
+          details: [
+            "Doğrulama tokeni süresi doldu, doğrulama e-postasını yeniden gönderin.",
+          ],
+        },
+      });
+    }
+    user.isVerified = true;
+    user.verificationToken = null;
+    user.verificationTokenExpiresAt = null;
+    await user.save();
+
+    const { accessToken, refreshToken } = generateTokens(user);
+
+    // Token'ları cookie'ye yaz
+    res.cookie("token", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    console.info(
+      "auth/register: Yeni kullanıcı oluşturuldu ve token'lar ayarlandı:",
+      user.email
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Yeni kullanıcı başarıyla oluşturuldu ve oturum açıldı",
+      data: {
+        user: {
+          id: user._id,
+          userName: user.userName,
+          role: user.role,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("auth/verifyEmail hata:", error);
+    res.status(401).json({
+      success: false,
+      message: "Geçersiz token",
+      error: {
+        code: "INVALID_TOKEN",
+        details: ["Geçersiz veya süresi dolmuş token."],
+      },
+    });
+  }
+};
+const resendVerificationEmail = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email)
+      return res
+        .status(400)
+        .json({ success: false, message: "Email is required" });
+    const user = await User.findOne({ email });
+    if (!user)
+      return res.status(400).json({
+        success: false,
+        message: "Kullanıcı bulunamadı",
+        error: {
+          code: "USER_NOT_FOUND",
+          details: ["Bu email adresi ile kayıtlı kullanıcı bulunamadı."],
+        },
+      });
+    sendVerificationEmail(user, res);
+    res.status(201).json({
+      success: true,
+      message:
+        "Hesap başarıyla oluşturuldu, hesabınızı doğrulamak için e-postanızı kontrol edin. Doğrulama e-postası 2 saat içinde geçerliliğini yitirecektir.",
+    });
+  } catch (error) {
+    console.error("auth/resendVerificationEmail hata:", error);
+    return res.status(400).json({
+      success: false,
+      message: "Doğrulama e-postası gönderilirken hata oluştu.",
+    });
+  }
+};
+
 module.exports = {
   login,
   refreshAccessToken,
   verifyToken,
   logout,
   register,
+  verifyEmail,
+  resendVerificationEmail,
 };
