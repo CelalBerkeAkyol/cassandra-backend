@@ -10,7 +10,9 @@ const port = process.env.PORT || 3000;
 
 // CORS ayarları - env dosyasından origins alınıyor
 const allowedOrigins = process.env.ALLOWED_ORIGINS.split(",");
+const isDevelopment = process.env.NODE_ENV !== "production";
 
+// CORS ayarları güncellemesi
 app.use(
   cors({
     origin: function (origin, callback) {
@@ -18,12 +20,14 @@ app.use(
       if (!origin || allowedOrigins.indexOf(origin) !== -1) {
         callback(null, true);
       } else {
+        console.warn("CORS denied for origin:", origin);
         callback(new Error("CORS policy: Not allowed"));
       }
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     credentials: true, // Cookie gönderimine izin verir
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Refresh-Token"],
+    exposedHeaders: ["Set-Cookie"],
     optionsSuccessStatus: 200,
   })
 );
@@ -32,11 +36,38 @@ app.use(
 app.use(express.json({ limit: "50mb" })); // JSON için 50MB'a çıkar
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(cookieParser());
+
+// Geliştirme ortamı için HTTPS gereksinimini devre dışı bırakma middleware'i
+app.use((req, res, next) => {
+  // Secure cookie durumlarını kontrol etmek için
+  console.log(`Request from: ${req.headers.origin} to ${req.path}`);
+
+  // Orijinal res.cookie fonksiyonunu sakla
+  const originalCookie = res.cookie;
+
+  // Geliştirme ortamında ve HTTP kullanıyorsa secure: false yap
+  if (isDevelopment) {
+    res.cookie = function (name, value, options = {}) {
+      // Geliştirme ortamı için secure özelliğini false yapabiliriz
+      if (options.secure && !req.secure && req.protocol === "http") {
+        console.log(`Setting insecure cookie ${name} for HTTP development`);
+        options.secure = false;
+      }
+      return originalCookie.call(this, name, value, options);
+    };
+  }
+
+  next();
+});
+
+// Statik dosyaları sunma
 app.use("/uploads", express.static("uploads"));
+
+// Ana rota
 app.get("/", (req, res) => {
   res.send("Finance blog");
 });
-app.use("/blog", router);
+app.use("/api", router);
 
 // Database connection
 connectDatabase();
@@ -55,4 +86,7 @@ app.use((err, req, res, next) => {
 app.listen(port, "0.0.0.0", () => {
   console.log(`Example app listening on port ${port}`);
   console.log(`Server accessible at http://localhost:${port}`);
+  console.log(
+    `Running in ${isDevelopment ? "development" : "production"} mode`
+  );
 });

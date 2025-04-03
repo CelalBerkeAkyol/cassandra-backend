@@ -4,6 +4,14 @@ const User = require("../Models/UserSchema");
 const { clearAuthCookies } = require("../Helpers/tokenHelpers");
 const { sendVerificationEmail } = require("../Helpers/emailHelpers");
 
+// Cookie ayarları - Proxy kullanıldığında aynı origin olacak
+const cookieOptions = {
+  httpOnly: true,
+  sameSite: "Lax", // Proxy kullanıyoruz - aynı site olacak
+  path: "/",
+  // secure değeri otomatik ayarlanacak - HTTP için false, HTTPS için true
+};
+
 // Token oluşturma fonksiyonu
 const generateTokens = (user) => {
   console.info("auth/generateTokens: Token oluşturma başladı.");
@@ -95,17 +103,15 @@ const login = async (req, res) => {
     user.refreshToken = refreshToken;
     await user.save();
 
+    // Cookie ayarlarını değiştir
     res.cookie("token", accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "None",
-      maxAge: 24 * 60 * 60 * 1000,
+      ...cookieOptions,
+      maxAge: 24 * 60 * 60 * 1000, // 1 gün
     });
+
     res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "None",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      ...cookieOptions,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 gün
     });
 
     console.info("auth/login: Giriş başarılı, tokenlar oluşturuldu.");
@@ -283,10 +289,8 @@ const refreshAccessToken = async (req, res) => {
     );
 
     res.cookie("token", newAccessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "None",
-      maxAge: 15 * 60 * 1000,
+      ...cookieOptions,
+      maxAge: 15 * 60 * 1000, // 15 dakika
     });
 
     console.info("auth/refreshAccessToken: Yeni access token oluşturuldu.");
@@ -384,17 +388,13 @@ const verifyEmail = async (req, res) => {
 
     // Token'ları cookie'ye yaz
     res.cookie("token", accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax",
-      maxAge: 24 * 60 * 60 * 1000,
+      ...cookieOptions,
+      maxAge: 24 * 60 * 60 * 1000, // 1 gün
     });
 
     res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      ...cookieOptions,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 gün
     });
 
     console.info(
