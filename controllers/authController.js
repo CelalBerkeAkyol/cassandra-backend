@@ -11,7 +11,7 @@ const isDevelopment = process.env.NODE_ENV !== "production";
 const cookieOptions = {
   httpOnly: true,
   secure: !isDevelopment, // Production'da true, development'ta false
-  sameSite: "None", // Cross-site istekler için gerekli
+  sameSite: isDevelopment ? "Lax" : "None", // Development'ta Lax, Production'da None
   path: "/",
   // domain değeri production ve development ortamları için dinamik olarak ayarlanır
 };

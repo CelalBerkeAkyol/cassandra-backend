@@ -29,7 +29,7 @@ const clearAuthCookies = (res) => {
   const cookieOptions = {
     httpOnly: true,
     secure: !isDevelopment, // Production'da true, development'ta false
-    sameSite: "None",
+    sameSite: isDevelopment ? "Lax" : "None", // Development'ta Lax, Production'da None
     path: "/",
   };
 
