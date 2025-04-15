@@ -504,10 +504,10 @@ const forgotPassword = async (req, res) => {
     // Son 15 dakika içinde bir istek yapılmış mı kontrol et (rate limiting)
     if (
       user.resetPasswordExpires &&
-      user.resetPasswordExpires > Date.now() - 15 * 60000
+      user.resetPasswordExpires > Date.now() - 1 * 60000 // 1 dakika bekletme süresi
     ) {
       const timeLeft = Math.ceil(
-        (user.resetPasswordExpires - (Date.now() - 15 * 60000)) / 60000
+        (user.resetPasswordExpires - Date.now()) / 60000
       );
       console.warn("auth/forgotPassword: Çok sık istek:", email);
       return res.status(429).json({
@@ -638,7 +638,7 @@ const verifyResetCode = async (req, res) => {
     // Başarılı ise geçici bir token oluştur
     const verifiedToken = crypto.randomBytes(32).toString("hex");
     user.resetPasswordToken = verifiedToken;
-    user.resetPasswordExpires = Date.now() + 10 * 60000; // 10 dakika daha uzat
+    user.resetPasswordExpires = Date.now() + 1 * 60000; // 1 dakika
     user.resetPasswordAttempts = 0;
     await user.save();
 
@@ -681,14 +681,14 @@ const resetPassword = async (req, res) => {
     });
   }
 
-  // Şifre güvenlik kontrolü
-  if (newPassword.length < 8) {
+  // Token uzunluğu kontrolü
+  if (token.length < 32) {
     return res.status(400).json({
       success: false,
-      message: "Şifre en az 8 karakter olmalıdır",
+      message: "Geçersiz token formatı",
       error: {
-        code: "INVALID_PASSWORD",
-        details: ["Yeni şifreniz en az 8 karakter uzunluğunda olmalıdır."],
+        code: "INVALID_TOKEN",
+        details: ["Doğrulama tokeniniz geçersiz."],
       },
     });
   }
@@ -735,6 +735,10 @@ const resetPassword = async (req, res) => {
     user.resetPasswordToken = null;
     user.resetPasswordExpires = null;
     user.resetPasswordAttempts = 0;
+
+    // Güvenlik için kullanıcının diğer oturumlarını sonlandır
+    user.refreshToken = null;
+
     await user.save();
 
     console.info("auth/resetPassword: Şifre başarıyla sıfırlandı:", email);
