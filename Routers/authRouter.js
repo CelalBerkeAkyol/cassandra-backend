@@ -11,6 +11,9 @@ const {
   register,
   verifyEmail,
   resendVerificationEmail,
+  forgotPassword,
+  verifyResetCode,
+  resetPassword,
 } = require("../controllers/authController"); // token burada oluşturuluyor
 
 // admin tarafından post isteği ile veri tabanına kullanıcı ekleme
@@ -20,6 +23,11 @@ router.post("/logout", getAccessToRoute, logout);
 
 router.get("/verify-email", verifyEmail);
 router.post("/resend-verification-email", resendVerificationEmail);
+
+// Password reset routes
+router.post("/forgot-password", forgotPassword);
+router.post("/verify-reset-code", verifyResetCode);
+router.post("/reset-password", resetPassword);
 
 // buraya refresh işlemleri atılacak
 router.post("/refresh-token", getAccessToRoute, refreshAccessToken);

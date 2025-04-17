@@ -11,7 +11,7 @@ const isDevelopment = process.env.NODE_ENV !== "production";
 const cookieOptions = {
   httpOnly: true,
   secure: !isDevelopment, // Production'da true, development'ta false
-  sameSite: "None", // Cross-site istekler için gerekli
+  sameSite: isDevelopment ? "Lax" : "None", // Development'ta Lax, Production'da None
   path: "/",
   // domain değeri production ve development ortamları için dinamik olarak ayarlanır
 };
@@ -461,6 +461,305 @@ const resendVerificationEmail = async (req, res) => {
   }
 };
 
+const forgotPassword = async (req, res) => {
+  console.info("auth/forgotPassword: Şifre sıfırlama isteği başladı.");
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({
+      success: false,
+      message: "Email adresi gereklidir",
+      error: {
+        code: "MISSING_EMAIL",
+        details: ["Lütfen email adresinizi girin."],
+      },
+    });
+  }
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      // Güvenlik nedeniyle, kullanıcı bulunamasa da başarılı mesajı döndürülüyor
+      console.warn("auth/forgotPassword: Kullanıcı bulunamadı:", email);
+      return res.status(200).json({
+        success: true,
+        message:
+          "Şifre sıfırlama talimatları email adresinize gönderildi (varsa)",
+      });
+    }
+
+    // Kullanıcı aktif değilse
+    if (!user.isActive) {
+      console.warn("auth/forgotPassword: Deaktif edilmiş hesap:", email);
+      return res.status(403).json({
+        success: false,
+        message: "Hesabınız deaktif edilmiş",
+        error: {
+          code: "ACCOUNT_DEACTIVATED",
+          details: ["Hesabınız devre dışı bırakılmıştır."],
+        },
+      });
+    }
+
+    // Son 15 dakika içinde bir istek yapılmış mı kontrol et (rate limiting)
+    if (
+      user.resetPasswordExpires &&
+      user.resetPasswordExpires > Date.now() - 1 * 60000 // 1 dakika bekletme süresi
+    ) {
+      const timeLeft = Math.ceil(
+        (user.resetPasswordExpires - Date.now()) / 60000
+      );
+      console.warn("auth/forgotPassword: Çok sık istek:", email);
+      return res.status(429).json({
+        success: false,
+        message: "Çok fazla istek gönderildi",
+        error: {
+          code: "TOO_MANY_REQUESTS",
+          details: [`Lütfen ${timeLeft} dakika sonra tekrar deneyin.`],
+        },
+      });
+    }
+
+    // E-posta gönder ve token oluştur
+    const { sendPasswordResetEmail } = require("../Helpers/emailHelpers");
+    await sendPasswordResetEmail(user);
+
+    console.info("auth/forgotPassword: Sıfırlama e-postası gönderildi:", email);
+    res.status(200).json({
+      success: true,
+      message: "Şifre sıfırlama talimatları email adresinize gönderildi",
+    });
+  } catch (error) {
+    console.error("auth/forgotPassword hata:", error);
+    res.status(500).json({
+      success: false,
+      message: "Sunucu hatası",
+      error: {
+        code: "SERVER_ERROR",
+        details: ["Şifre sıfırlama işlemi sırasında bir hata oluştu."],
+      },
+    });
+  }
+};
+
+const verifyResetCode = async (req, res) => {
+  console.info("auth/verifyResetCode: Kod doğrulama isteği başladı.");
+  const { email, code } = req.body;
+
+  if (!email || !code) {
+    return res.status(400).json({
+      success: false,
+      message: "Email ve kod gereklidir",
+      error: {
+        code: "MISSING_FIELDS",
+        details: ["Lütfen email adresinizi ve doğrulama kodunu girin."],
+      },
+    });
+  }
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      console.warn("auth/verifyResetCode: Kullanıcı bulunamadı:", email);
+      return res.status(404).json({
+        success: false,
+        message: "Kullanıcı bulunamadı",
+        error: {
+          code: "USER_NOT_FOUND",
+          details: ["Bu email adresi ile kayıtlı kullanıcı bulunamadı."],
+        },
+      });
+    }
+
+    // Token süresi dolmuş mu kontrol et
+    if (
+      !user.resetPasswordToken ||
+      !user.resetPasswordExpires ||
+      user.resetPasswordExpires < Date.now()
+    ) {
+      console.warn(
+        "auth/verifyResetCode: Token süresi dolmuş veya geçersiz:",
+        email
+      );
+      return res.status(400).json({
+        success: false,
+        message: "Doğrulama kodu geçersiz veya süresi dolmuş",
+        error: {
+          code: "INVALID_OR_EXPIRED_TOKEN",
+          details: [
+            "Doğrulama kodunuzun süresi dolmuş veya geçersiz. Lütfen yeni bir şifre sıfırlama isteği gönderin.",
+          ],
+        },
+      });
+    }
+
+    // Maksimum deneme sayısını kontrol et (brute force koruması)
+    if (user.resetPasswordAttempts >= 5) {
+      user.resetPasswordToken = null;
+      user.resetPasswordExpires = null;
+      user.resetPasswordAttempts = 0;
+      await user.save();
+
+      console.warn(
+        "auth/verifyResetCode: Maksimum deneme sayısı aşıldı:",
+        email
+      );
+      return res.status(400).json({
+        success: false,
+        message: "Maksimum deneme sayısı aşıldı",
+        error: {
+          code: "MAX_ATTEMPTS_EXCEEDED",
+          details: [
+            "Çok fazla başarısız deneme yaptınız. Lütfen yeni bir şifre sıfırlama isteği gönderin.",
+          ],
+        },
+      });
+    }
+
+    const crypto = require("crypto");
+    const hashedCode = crypto.createHash("sha256").update(code).digest("hex");
+
+    // Kod doğru mu kontrol et
+    if (user.resetPasswordToken !== hashedCode) {
+      user.resetPasswordAttempts += 1;
+      await user.save();
+
+      console.warn("auth/verifyResetCode: Geçersiz kod:", email);
+      return res.status(400).json({
+        success: false,
+        message: "Geçersiz doğrulama kodu",
+        error: {
+          code: "INVALID_CODE",
+          details: ["Girdiğiniz doğrulama kodu geçersiz."],
+        },
+      });
+    }
+
+    // Başarılı ise geçici bir token oluştur
+    const verifiedToken = crypto.randomBytes(32).toString("hex");
+    user.resetPasswordToken = verifiedToken;
+    user.resetPasswordExpires = Date.now() + 1 * 60000; // 1 dakika
+    user.resetPasswordAttempts = 0;
+    await user.save();
+
+    console.info("auth/verifyResetCode: Kod doğrulandı:", email);
+    res.status(200).json({
+      success: true,
+      message: "Doğrulama kodu başarıyla doğrulandı",
+      data: {
+        token: verifiedToken,
+        expiresAt: user.resetPasswordExpires,
+      },
+    });
+  } catch (error) {
+    console.error("auth/verifyResetCode hata:", error);
+    res.status(500).json({
+      success: false,
+      message: "Sunucu hatası",
+      error: {
+        code: "SERVER_ERROR",
+        details: ["Kod doğrulama işlemi sırasında bir hata oluştu."],
+      },
+    });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  console.info("auth/resetPassword: Şifre sıfırlama işlemi başladı.");
+  const { email, token, newPassword } = req.body;
+
+  if (!email || !token || !newPassword) {
+    return res.status(400).json({
+      success: false,
+      message: "Email, token ve yeni şifre gereklidir",
+      error: {
+        code: "MISSING_FIELDS",
+        details: [
+          "Lütfen email adresinizi, doğrulama tokenini ve yeni şifrenizi girin.",
+        ],
+      },
+    });
+  }
+
+  // Token uzunluğu kontrolü
+  if (token.length < 32) {
+    return res.status(400).json({
+      success: false,
+      message: "Geçersiz token formatı",
+      error: {
+        code: "INVALID_TOKEN",
+        details: ["Doğrulama tokeniniz geçersiz."],
+      },
+    });
+  }
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      console.warn("auth/resetPassword: Kullanıcı bulunamadı:", email);
+      return res.status(404).json({
+        success: false,
+        message: "Kullanıcı bulunamadı",
+        error: {
+          code: "USER_NOT_FOUND",
+          details: ["Bu email adresi ile kayıtlı kullanıcı bulunamadı."],
+        },
+      });
+    }
+
+    // Token geçerli mi kontrol et
+    if (
+      !user.resetPasswordToken ||
+      !user.resetPasswordExpires ||
+      user.resetPasswordExpires < Date.now() ||
+      user.resetPasswordToken !== token
+    ) {
+      console.warn(
+        "auth/resetPassword: Token geçersiz veya süresi dolmuş:",
+        email
+      );
+      return res.status(400).json({
+        success: false,
+        message: "Token geçersiz veya süresi dolmuş",
+        error: {
+          code: "INVALID_OR_EXPIRED_TOKEN",
+          details: [
+            "Doğrulama tokeniniz geçersiz veya süresi dolmuş. Lütfen yeni bir şifre sıfırlama isteği gönderin.",
+          ],
+        },
+      });
+    }
+
+    // Şifreyi güncelle
+    user.password = newPassword;
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
+    user.resetPasswordAttempts = 0;
+
+    // Güvenlik için kullanıcının diğer oturumlarını sonlandır
+    user.refreshToken = null;
+
+    await user.save();
+
+    console.info("auth/resetPassword: Şifre başarıyla sıfırlandı:", email);
+    res.status(200).json({
+      success: true,
+      message:
+        "Şifreniz başarıyla sıfırlandı. Yeni şifrenizle giriş yapabilirsiniz.",
+    });
+  } catch (error) {
+    console.error("auth/resetPassword hata:", error);
+    res.status(500).json({
+      success: false,
+      message: "Sunucu hatası",
+      error: {
+        code: "SERVER_ERROR",
+        details: ["Şifre sıfırlama işlemi sırasında bir hata oluştu."],
+      },
+    });
+  }
+};
+
 module.exports = {
   login,
   refreshAccessToken,
@@ -469,4 +768,7 @@ module.exports = {
   register,
   verifyEmail,
   resendVerificationEmail,
+  forgotPassword,
+  verifyResetCode,
+  resetPassword,
 };
