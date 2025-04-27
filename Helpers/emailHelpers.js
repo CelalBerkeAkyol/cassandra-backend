@@ -1,15 +1,23 @@
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 
+// Gmail yerine SMTP kullanarak yeni e-posta adresini kullanın
+const createTransporter = () => {
+  console.log("SMTP login olacak kullanıcı:", process.env.GOOGLE_MAIL);
+  return nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true, // SSL kullanımı
+    auth: {
+      user: process.env.GOOGLE_MAIL,
+      pass: process.env.GOOGLE_PASS,
+    },
+  });
+};
+
 const sendVerificationEmail = async (user) => {
   try {
-    const transporter = nodemailer.createTransport({
-      service: "Gmail",
-      auth: {
-        user: process.env.GOOGLE_MAIL,
-        pass: process.env.GOOGLE_PASS,
-      },
-    });
+    const transporter = createTransporter();
 
     const token = crypto.randomBytes(32).toString("hex");
     user.verificationToken = token;
@@ -93,7 +101,7 @@ const sendVerificationEmail = async (user) => {
           <p>Eğer bu hesabı siz oluşturmadıysanız, lütfen bu e-postayı dikkate almayın.</p>
         </div>
         <div class="footer">
-          <p>&copy; ${new Date().getFullYear()} Fin AI. Tüm hakları saklıdır.</p>
+          <p>&copy; ${new Date().getFullYear()} Cassandra tüm hakları saklıdır.</p>
         </div>
       </div>
     </body>
@@ -101,10 +109,10 @@ const sendVerificationEmail = async (user) => {
     `;
 
     const mailOptions = {
-      from: process.env.GOOGLE_MAIL,
+      from: "noreply@cassandra.com.tr",
       to: user.email,
-      subject: "E-posta Doğrulama | Fin AI",
-      text: `E-posta adresinizi doğrulamak için lütfen bu bağlantıya tıklayın: ${baseUrl}/verify-email?token=${token}\n\nBağlantı 2 saat içinde geçerliliğini yitirecektir.\n\nFin AI`,
+      subject: "E-posta Doğrulama | Cassandra ",
+      text: `E-posta adresinizi doğrulamak için lütfen bu bağlantıya tıklayın: ${baseUrl}/verify-email?token=${token}\n\nBağlantı 2 saat içinde geçerliliğini yitirecektir.\n\nCassandra Blog`,
       html: htmlContent,
     };
 
@@ -120,13 +128,7 @@ const sendVerificationEmail = async (user) => {
 
 const sendPasswordResetEmail = async (user) => {
   try {
-    const transporter = nodemailer.createTransport({
-      service: "Gmail",
-      auth: {
-        user: process.env.GOOGLE_MAIL,
-        pass: process.env.GOOGLE_PASS,
-      },
-    });
+    const transporter = createTransporter();
 
     // Generate a 6-digit code
     const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -237,7 +239,7 @@ const sendPasswordResetEmail = async (user) => {
           </div>
         </div>
         <div class="footer">
-          <p>&copy; ${new Date().getFullYear()} Fin Blog. Tüm hakları saklıdır.</p>
+          <p>&copy; ${new Date().getFullYear()} Cassandra tüm hakları saklıdır.</p>
           <p>Bu e-posta otomatik olarak oluşturulmuştur, lütfen yanıtlamayınız.</p>
         </div>
       </div>
@@ -246,10 +248,10 @@ const sendPasswordResetEmail = async (user) => {
     `;
 
     const mailOptions = {
-      from: process.env.GOOGLE_MAIL,
+      from: "noreply@cassandra.com.tr",
       to: user.email,
-      subject: "Şifre Sıfırlama | Fin Blog",
-      text: `Fin Blog hesabınız için şifre sıfırlama talebinde bulundunuz.\n\nDoğrulama kodunuz: ${resetCode}\n\nBu kod 1 dakika içinde geçerliliğini yitirecektir.\n\nŞifrenizi sıfırlamak için şifre sıfırlama sayfasında bu kodu kullanın.\n\nEğer bu işlemi siz talep etmediyseniz, bu e-postayı görmezden gelebilirsiniz.\n\nFin Blog`,
+      subject: "Şifre Sıfırlama | Cassandra",
+      text: `Cassandra hesabınız için şifre sıfırlama talebinde bulundunuz.\n\nDoğrulama kodunuz: ${resetCode}\n\nBu kod 1 dakika içinde geçerliliğini yitirecektir.\n\nŞifrenizi sıfırlamak için şifre sıfırlama sayfasında bu kodu kullanın.\n\nEğer bu işlemi siz talep etmediyseniz, bu e-postayı görmezden gelebilirsiniz.\n\nCassandra Blog`,
       html: htmlContent,
     };
 

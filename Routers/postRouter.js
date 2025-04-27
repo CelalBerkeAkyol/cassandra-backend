@@ -5,8 +5,6 @@ const {
 } = require("../middlewares/sanitizationMiddleware");
 const {
   getAccessToRoute,
-  isAdmin,
-  isAuthor,
   isAuthorOrAdmin,
   isOwnerOrAdmin,
 } = require("../middlewares/authMiddleware");
