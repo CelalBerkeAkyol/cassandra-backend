@@ -24,22 +24,12 @@ const postSchema = new mongoose.Schema(
       required: [true, "Lütfen yazar bilgisi giriniz"], // Uyarı metni ekleme
     },
 
-    // TO-DO kategoriler daha dinamik bir şekilde eklenir mi ?
+    // Kategori alanı - artık enum kısıtlaması olmadan, veritabanından yönetilecek
     category: {
       type: String,
       required: [true, "Lütfen kategori giriniz"], // Uyarı metni ekleme
       trim: true,
-      enum: [
-        "mikro-ekonomi",
-        "makro-ekonomi",
-        "kişisel-finans",
-        "tasarruf",
-        "temel-analiz",
-        "teknik-analiz",
-        "kategori-yok",
-        "araştırma",
-      ],
-      default: "Kategori yok",
+      default: "kategori-yok",
     },
     slug: String,
     images: [

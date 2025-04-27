@@ -146,7 +146,7 @@ This project is distributed under the **Creative Commons Attribution-NonCommerci
 
 ## **📩 Contact**
 
-📧 **Email:** [buscberke@gmail.com](mailto:buscberke@gmail.com)  
+📧 **Email:** [celalberke@cassandra.com.tr](mailto:celalberke@cassandra.com.tr)  
 🚀 **Developer:** [GitHub](https://github.com/CelalBerkeAkyol)
 
 ---

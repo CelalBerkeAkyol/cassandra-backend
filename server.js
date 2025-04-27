@@ -12,16 +12,27 @@ const port = process.env.PORT || 3000;
 const allowedOrigins = process.env.ALLOWED_ORIGINS.split(",");
 const isDevelopment = process.env.NODE_ENV !== "production";
 
+console.log("ALLOWED_ORIGINS:", allowedOrigins);
+console.log("NODE_ENV:", process.env.NODE_ENV);
+console.log("isDevelopment:", isDevelopment);
+
 // CORS ayarları güncellemesi
 app.use(
   cors({
     origin: function (origin, callback) {
+      console.log("Incoming request origin:", origin);
       // Tarayıcıdan olmayan (null origin) veya izin verilen originler için izin ver
       // Development modunda tüm originler için izin ver
       if (isDevelopment || !origin || allowedOrigins.indexOf(origin) !== -1) {
+        console.log("CORS allowed for origin:", origin);
         callback(null, true);
       } else {
-        console.warn("CORS denied for origin:", origin);
+        console.warn(
+          "CORS denied for origin:",
+          origin,
+          "Allowed origins:",
+          allowedOrigins
+        );
         callback(new Error("CORS policy: Not allowed"));
       }
     },
@@ -71,14 +82,12 @@ app.use("/uploads", express.static("uploads"));
 
 // Ana rota
 app.get("/", (req, res) => {
-  res.send("Finance blog");
+  res.send("Cassandra API");
 });
 app.use("/api", router);
 
 // Database connection
 connectDatabase();
-
-// app.use(bodyParser.json());
 
 app.use((err, req, res, next) => {
   console.error(err.stack); // Hatanın detaylarını loglar
@@ -90,7 +99,6 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(port, "0.0.0.0", () => {
-  console.log(`Example app listening on port ${port}`);
   console.log(`Server accessible at http://localhost:${port}`);
   console.log(
     `Running in ${isDevelopment ? "development" : "production"} mode`
