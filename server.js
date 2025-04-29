@@ -77,9 +77,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Statik dosyaları sunma
-app.use("/uploads", express.static("uploads"));
-
 // Ana rota
 app.get("/", (req, res) => {
   res.send("Cassandra API");
