@@ -1,17 +1,23 @@
 const mongoose = require("mongoose");
 
+/**
+ * Tek gerçek alan `path`.
+ * Tam URL (host + protokol) çalışma sırasında controller
+ * içinde üretildiği için veritabanında saklamaya gerek yok.
+ * İstersen convenience amaçlı sanal (virtual) bir `url` alanı
+ * ekliyoruz; ancak REQUIRED DEĞİL.
+ */
 const imageSchema = new mongoose.Schema(
   {
-    url: { type: String, required: true },
-    path: { type: String, required: true },
+    path: {
+      type: String,
+      required: [true, "Görselin erişim yolu (path) eksik"],
+    },
     filename: {
       type: String,
-      required: [true, "Dosya adı eksik"], // Dosya isminin kaydedilmesini zorunlu yaptık
+      required: [true, "Dosya adı eksik"],
     },
-    altText: {
-      type: String,
-    },
-    // Yeni: Resim verisinin kendisi
+    altText: { type: String },
     data: {
       type: Buffer,
       required: [true, "Resim verisi eksik"],
@@ -20,15 +26,17 @@ const imageSchema = new mongoose.Schema(
       type: String,
       required: [true, "Resim içerik tipi eksik"],
     },
-    // Yükleyen kullanıcı bilgisi
     uploadedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
-    // Blog yazısı ile ilişki kaldırıldı.
   },
-  { timestamps: true }
+  { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
 
-const Image = mongoose.model("Image", imageSchema);
-module.exports = Image;
+// Sanal alan: tam URL (runtime'da controller veya client tarafından doldurulur)
+imageSchema.virtual("url").get(function () {
+  return this.path; // Öntanımlı – controller tam URL ile değiştirecek
+});
+
+module.exports = mongoose.model("Image", imageSchema);
