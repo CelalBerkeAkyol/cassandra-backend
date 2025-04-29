@@ -21,7 +21,7 @@ router.get("/", getImages);
 
 // Görsel görüntüleme - herkes erişebilir
 // URL parametreleri: filename (görsel dosya adı)
-router.get("/view/:filename", viewImage);
+router.get("/:id", viewImage);
 
 // Çoklu görsel yükleme - sadece yazarlar ve adminler yapabilir
 // Body parametreleri: image (max 50 dosya), altText (opsiyonel)

@@ -1,11 +1,20 @@
 const Image = require("../Models/ImageSchema");
 
-// Çoklu görsel yükleme (altText zorunlu değil)
+// Yardımcı: çalışma anında tam URL oluştur
+const makeFullUrl = (req, relativePath) =>
+  `${req.protocol}://${req.get("host")}${relativePath}`;
+
+/**
+ * Çoklu görsel yükleme
+ * - İstemci -> POST /api/images (form‑data: image[])
+ * - Alt metin opsiyonel → req.body.altText
+ * - Her görsel veritabanında kaydedilir; ID'si belli olduktan sonra
+ *   path = `/api/images/<id>` şeklinde kurulur.
+ */
 const uploadImages = async (req, res) => {
   console.info("image/uploadImages: Görsel yükleme işlemi başladı.");
   try {
-    if (!req.files || req.files.length === 0) {
-      console.warn("image/uploadImages: Görsel dosyası bulunamadı.");
+    if (!req.files?.length) {
       return res.status(400).json({
         success: false,
         message: "Görsel dosyası bulunamadı",
@@ -16,33 +25,34 @@ const uploadImages = async (req, res) => {
       });
     }
 
-    const uploadedImages = [];
     const altText = req.body.altText || "";
     const userId = req.user.id;
+    const uploadedImages = [];
 
     for (const file of req.files) {
-      // Dosya adı oluştur
-      const filename =
-        Date.now() + "-" + file.originalname.replace(/\s+/g, "-");
+      // Orijinal dosya adını güvenli hâle getir
+      const filename = `${Date.now()}-${file.originalname.replace(
+        /\s+/g,
+        "-"
+      )}`;
 
-      // Benzersiz URL oluştur
-      const imageUrl = `${req.protocol}://${req.get(
-        "host"
-      )}/api/images/view/${filename}`;
-
+      // 1) Doc'u oluştur → _id hemen atanır, böylece önce path'i yazabiliriz
       const image = new Image({
-        url: imageUrl,
-        filename: filename,
-        altText: altText,
+        filename,
+        altText,
         uploadedBy: userId,
         data: file.buffer,
         contentType: file.mimetype,
       });
 
+      // 2) Dinamik yol: /api/images/<id>
+      image.path = `/api/images/${image._id}`;
       await image.save();
+
       uploadedImages.push({
         _id: image._id,
-        url: image.url,
+        path: image.path,
+        url: makeFullUrl(req, image.path),
         filename: image.filename,
         altText: image.altText,
         uploadedBy: image.uploadedBy,
@@ -71,27 +81,27 @@ const uploadImages = async (req, res) => {
   }
 };
 
-// Görsel getirme (görüntüleme)
+/**
+ * Tek görsel görüntüleme
+ * GET /api/images/:id  → binary image
+ */
 const viewImage = async (req, res) => {
   console.info("image/viewImage: Görsel görüntüleme işlemi başladı.");
   try {
-    const filename = req.params.filename;
-
-    const image = await Image.findOne({ filename: filename });
+    const { id } = req.params;
+    const image = await Image.findById(id);
 
     if (!image) {
-      console.warn(`image/viewImage: ${filename} adlı görsel bulunamadı.`);
       return res.status(404).json({
         success: false,
         message: "Görsel bulunamadı",
         error: {
           code: "IMAGE_NOT_FOUND",
-          details: ["Bu görsel bulunamadı."],
+          details: ["Bu ID'li görsel bulunamadı."],
         },
       });
     }
 
-    // Görsel verilerini yanıt olarak gönderme
     res.set("Content-Type", image.contentType);
     return res.send(image.data);
   } catch (error) {
@@ -107,32 +117,37 @@ const viewImage = async (req, res) => {
   }
 };
 
-// Görselleri sayfalama ile listeleme
+/**
+ * Sayfalama ile görselleri listele
+ * GET /api/images?page=1&limit=20
+ */
 const getImages = async (req, res) => {
   console.info("image/getImages: Görseller listeleniyor.");
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 20;
     const skip = (page - 1) * limit;
 
-    // Ağır veri alanlarını çekmiyoruz
     const images = await Image.find({}, { data: 0 })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
-    const total = await Image.countDocuments();
-    const totalPages = Math.ceil(total / limit);
+    const fullImages = images.map((img) => ({
+      ...img.toObject(),
+      url: makeFullUrl(req, img.path),
+    }));
 
-    console.info(`image/getImages: ${images.length} görsel listelendi.`);
+    const total = await Image.countDocuments();
+
     return res.status(200).json({
       success: true,
       message: "Görseller başarıyla listelendi",
       data: {
-        images,
+        images: fullImages,
         pagination: {
           currentPage: page,
-          totalPages,
+          totalPages: Math.ceil(total / limit),
           totalItems: total,
           itemsPerPage: limit,
         },
@@ -151,7 +166,10 @@ const getImages = async (req, res) => {
   }
 };
 
-// Görsel silme
+/**
+ * Görsel silme
+ * DELETE /api/images/:id
+ */
 const deleteImage = async (req, res) => {
   console.info("image/deleteImage: Görsel silme işlemi başladı.");
   try {
@@ -160,9 +178,7 @@ const deleteImage = async (req, res) => {
     const userRole = req.user.role;
 
     const image = await Image.findById(id);
-
     if (!image) {
-      console.warn(`image/deleteImage: ID ${id} ile görsel bulunamadı.`);
       return res.status(404).json({
         success: false,
         message: "Görsel bulunamadı",
@@ -173,14 +189,7 @@ const deleteImage = async (req, res) => {
       });
     }
 
-    if (
-      userRole !== "admin" &&
-      image.uploadedBy &&
-      image.uploadedBy.toString() !== userId
-    ) {
-      console.error(
-        `image/deleteImage: Yetkisiz silme girişimi, kullanıcı: ${userId}, görsel sahibi: ${image.uploadedBy}`
-      );
+    if (userRole !== "admin" && image.uploadedBy?.toString() !== userId) {
       return res.status(403).json({
         success: false,
         message: "Bu görseli silme yetkiniz yok",
@@ -191,14 +200,14 @@ const deleteImage = async (req, res) => {
       });
     }
 
-    const deletedImage = await Image.findByIdAndDelete(id);
-
-    console.info(`image/deleteImage: ID ${id} ile görsel başarıyla silindi.`);
-    return res.status(200).json({
-      success: true,
-      message: "Görsel başarıyla silindi",
-      data: deletedImage,
-    });
+    await image.deleteOne();
+    return res
+      .status(200)
+      .json({
+        success: true,
+        message: "Görsel başarıyla silindi",
+        data: image,
+      });
   } catch (error) {
     console.error("image/deleteImage hata:", error);
     return res.status(500).json({
@@ -212,9 +221,4 @@ const deleteImage = async (req, res) => {
   }
 };
 
-module.exports = {
-  uploadImages,
-  getImages,
-  deleteImage,
-  viewImage,
-};
+module.exports = { uploadImages, getImages, deleteImage, viewImage };
