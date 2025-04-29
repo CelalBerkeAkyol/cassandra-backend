@@ -1,23 +1,8 @@
 // middleware/upload.js
 const multer = require("multer");
-const fs = require("fs");
 
-const uploadDir = "uploads/";
-
-// Klasör yoksa oluşturuyoruz
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    // Boşlukları tire ile değiştiriyoruz:
-    const sanitizedFilename = file.originalname.replace(/\s+/g, "-");
-    cb(null, Date.now() + "-" + sanitizedFilename);
-  },
-});
+// Artık dosyaları diske kaydetmek yerine belleğe alıyoruz
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   if (!file.mimetype.startsWith("image/")) {
@@ -29,5 +14,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage: storage,
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit koyduk
+  fileFilter: fileFilter,
 });
+
 module.exports = upload;

@@ -21,18 +21,33 @@ const uploadImages = async (req, res) => {
     const userId = req.user.id;
 
     for (const file of req.files) {
-      const imageUrl = `${req.protocol}://${req.get("host")}/uploads/${
-        file.filename
-      }`;
+      // Dosya adı oluştur
+      const filename =
+        Date.now() + "-" + file.originalname.replace(/\s+/g, "-");
+
+      // Benzersiz URL oluştur
+      const imageUrl = `${req.protocol}://${req.get(
+        "host"
+      )}/api/images/view/${filename}`;
+
       const image = new Image({
         url: imageUrl,
-        filename: file.filename,
+        filename: filename,
         altText: altText,
         uploadedBy: userId,
+        data: file.buffer,
+        contentType: file.mimetype,
       });
 
       await image.save();
-      uploadedImages.push(image);
+      uploadedImages.push({
+        _id: image._id,
+        url: image.url,
+        filename: image.filename,
+        altText: image.altText,
+        uploadedBy: image.uploadedBy,
+        createdAt: image.createdAt,
+      });
     }
 
     console.info(
@@ -56,6 +71,42 @@ const uploadImages = async (req, res) => {
   }
 };
 
+// Görsel getirme (görüntüleme)
+const viewImage = async (req, res) => {
+  console.info("image/viewImage: Görsel görüntüleme işlemi başladı.");
+  try {
+    const filename = req.params.filename;
+
+    const image = await Image.findOne({ filename: filename });
+
+    if (!image) {
+      console.warn(`image/viewImage: ${filename} adlı görsel bulunamadı.`);
+      return res.status(404).json({
+        success: false,
+        message: "Görsel bulunamadı",
+        error: {
+          code: "IMAGE_NOT_FOUND",
+          details: ["Bu görsel bulunamadı."],
+        },
+      });
+    }
+
+    // Görsel verilerini yanıt olarak gönderme
+    res.set("Content-Type", image.contentType);
+    return res.send(image.data);
+  } catch (error) {
+    console.error("image/viewImage hata:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Sunucu hatası",
+      error: {
+        code: "SERVER_ERROR",
+        details: ["Görsel görüntülenirken bir hata oluştu."],
+      },
+    });
+  }
+};
+
 // Görselleri sayfalama ile listeleme
 const getImages = async (req, res) => {
   console.info("image/getImages: Görseller listeleniyor.");
@@ -64,7 +115,8 @@ const getImages = async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
 
-    const images = await Image.find()
+    // Ağır veri alanlarını çekmiyoruz
+    const images = await Image.find({}, { data: 0 })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -164,4 +216,5 @@ module.exports = {
   uploadImages,
   getImages,
   deleteImage,
+  viewImage,
 };

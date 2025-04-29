@@ -13,6 +13,15 @@ const imageSchema = new mongoose.Schema(
     altText: {
       type: String,
     },
+    // Yeni: Resim verisinin kendisi
+    data: {
+      type: Buffer,
+      required: [true, "Resim verisi eksik"],
+    },
+    contentType: {
+      type: String,
+      required: [true, "Resim içerik tipi eksik"],
+    },
     // Yükleyen kullanıcı bilgisi
     uploadedBy: {
       type: mongoose.Schema.Types.ObjectId,

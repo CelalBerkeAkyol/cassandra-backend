@@ -6,6 +6,7 @@ const {
   getImages,
   uploadImages,
   deleteImage,
+  viewImage,
 } = require("../controllers/imageController");
 const {
   getAccessToRoute,
@@ -17,6 +18,10 @@ const {
 // Görselleri sayfalama ile listeleme - herkes erişebilir
 // Query parametreleri: page (varsayılan: 1), limit (varsayılan: 9)
 router.get("/", getImages);
+
+// Görsel görüntüleme - herkes erişebilir
+// URL parametreleri: filename (görsel dosya adı)
+router.get("/view/:filename", viewImage);
 
 // Çoklu görsel yükleme - sadece yazarlar ve adminler yapabilir
 // Body parametreleri: image (max 50 dosya), altText (opsiyonel)
