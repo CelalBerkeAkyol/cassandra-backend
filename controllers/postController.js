@@ -4,6 +4,13 @@ const {
   getCachedPost,
   deleteCacheKey,
 } = require("../Helpers/redisHelper");
+const { publishMessage } = require("../Helpers/kafkaHelper");
+
+// Kafka topic names
+const TOPICS = {
+  POST_CREATED: "post-created",
+  POST_DELETED: "post-deleted",
+};
 
 // Yeni post ekleme
 const newPost = async (req, res) => {
@@ -27,6 +34,24 @@ const newPost = async (req, res) => {
       ...req.body,
       author: req.user.id,
     });
+
+    // Kafka'ya post oluşturuldu eventi gönder
+    try {
+      await publishMessage(TOPICS.POST_CREATED, {
+        postId: post._id,
+        title: post.title,
+        authorId: post.author,
+        createdAt: post.createdAt,
+        summary: post.summary,
+      });
+      console.info(
+        "post/newPost: Kafka event published for new post, ID:",
+        post._id
+      );
+    } catch (kafkaError) {
+      console.error("post/newPost Kafka error:", kafkaError);
+      // Kafka hatası olsa bile post oluşturma işlemi başarılı sayılır
+    }
 
     console.info("post/newPost: Post oluşturuldu, ID:", post._id);
     res.status(201).json({
@@ -158,6 +183,24 @@ const deletePost = async (req, res) => {
   try {
     // Delete cache before deleting the post
     await deleteCacheKey(`post:${req.post._id}`);
+
+    // Kafka'ya post silindi eventi gönder
+    try {
+      await publishMessage(TOPICS.POST_DELETED, {
+        postId: req.post._id,
+        title: req.post.title,
+        authorId: req.post.author,
+        deletedAt: new Date().toISOString(),
+      });
+      console.info(
+        "post/deletePost: Kafka event published for deleted post, ID:",
+        req.post._id
+      );
+    } catch (kafkaError) {
+      console.error("post/deletePost Kafka error:", kafkaError);
+      // Kafka hatası olsa bile silme işlemi devam eder
+    }
+
     await req.post.deleteOne();
     console.info("post/deletePost: Post başarıyla silindi, ID:", req.post._id);
 

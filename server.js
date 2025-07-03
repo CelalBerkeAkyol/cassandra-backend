@@ -5,6 +5,7 @@ const connectDatabase = require("./Helpers/connectDatabase");
 const router = require("./Routers/index");
 const cookieParser = require("cookie-parser");
 const { connectRedis } = require("./Helpers/redisHelper");
+const { connectKafka } = require("./Helpers/kafkaHelper");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -89,6 +90,9 @@ connectDatabase();
 
 // Redis Connection
 connectRedis();
+
+// Kafka Connection
+connectKafka().catch((err) => console.error("Kafka connection failed:", err));
 
 app.use((err, req, res, next) => {
   console.error(err.stack); // Hatanın detaylarını loglar
