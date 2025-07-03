@@ -3,12 +3,14 @@ const {
   cachePost,
   getCachedPost,
   deleteCacheKey,
+  deleteAllPostCaches,
 } = require("../Helpers/redisHelper");
-const { publishMessage } = require("../Helpers/kafkaHelper");
+const kafkaProducer = require("../services/kafka/kafkaProducer");
 
 // Kafka topic names
 const TOPICS = {
   POST_CREATED: "post-created",
+  POST_UPDATED: "post-updated",
   POST_DELETED: "post-deleted",
 };
 
@@ -22,14 +24,13 @@ const newPost = async (req, res) => {
     return res.status(400).json({
       success: false,
       message: "Başlık ve içerik zorunludur",
-      error: {
-        code: "MISSING_FIELDS",
-        details: ["Başlık ve içerik alanları zorunludur."],
-      },
     });
   }
 
   try {
+    // YENİ EKLENEN SATIR: Yeni post eklemeden önce önbelleği temizle
+    await deleteAllPostCaches();
+
     const post = await Post.create({
       ...req.body,
       author: req.user.id,
@@ -37,7 +38,7 @@ const newPost = async (req, res) => {
 
     // Kafka'ya post oluşturuldu eventi gönder
     try {
-      await publishMessage(TOPICS.POST_CREATED, {
+      await kafkaProducer.sendMessage(TOPICS.POST_CREATED, {
         postId: post._id,
         title: post.title,
         authorId: post.author,
@@ -50,7 +51,6 @@ const newPost = async (req, res) => {
       );
     } catch (kafkaError) {
       console.error("post/newPost Kafka error:", kafkaError);
-      // Kafka hatası olsa bile post oluşturma işlemi başarılı sayılır
     }
 
     console.info("post/newPost: Post oluşturuldu, ID:", post._id);
@@ -64,10 +64,6 @@ const newPost = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Sunucu hatası",
-      error: {
-        code: "SERVER_ERROR",
-        details: ["Post oluşturulurken bir hata oluştu."],
-      },
     });
   }
 };
@@ -181,12 +177,13 @@ const postById = async (req, res) => {
 const deletePost = async (req, res) => {
   console.info("post/deletePost: Post silme işlemi başladı, ID:", req.post._id);
   try {
-    // Delete cache before deleting the post
+    // Delete all post-related caches
+    await deleteAllPostCaches();
     await deleteCacheKey(`post:${req.post._id}`);
 
     // Kafka'ya post silindi eventi gönder
     try {
-      await publishMessage(TOPICS.POST_DELETED, {
+      await kafkaProducer.sendMessage(TOPICS.POST_DELETED, {
         postId: req.post._id,
         title: req.post.title,
         authorId: req.post.author,
@@ -248,9 +245,28 @@ const updatePost = async (req, res) => {
   req.post.summary = updatedData.summary || req.post.summary;
 
   try {
-    // Delete cache before updating
+    // Clear all post-related caches before updating
+    await deleteAllPostCaches();
     await deleteCacheKey(`post:${req.post._id}`);
+
     const updatedPost = await req.post.save();
+
+    // Kafka'ya post güncellendi eventi gönder
+    try {
+      await kafkaProducer.sendMessage(TOPICS.POST_UPDATED, {
+        postId: updatedPost._id,
+        title: updatedPost.title,
+        author: updatedPost.author,
+        updatedAt: updatedPost.updatedAt,
+        category: updatedPost.category,
+      });
+      console.info(
+        "post/updatePost: Kafka event published for updated post, ID:",
+        updatedPost._id
+      );
+    } catch (kafkaError) {
+      console.error("post/updatePost Kafka error:", kafkaError);
+    }
 
     console.info("post/updatePost: Post güncellendi, ID:", updatedPost._id);
     res.status(200).json({

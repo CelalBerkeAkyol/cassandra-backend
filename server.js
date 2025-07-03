@@ -5,7 +5,8 @@ const connectDatabase = require("./Helpers/connectDatabase");
 const router = require("./Routers/index");
 const cookieParser = require("cookie-parser");
 const { connectRedis } = require("./Helpers/redisHelper");
-const { connectKafka } = require("./Helpers/kafkaHelper");
+const kafkaProducer = require("./services/kafka/kafkaProducer");
+require("./services/kafka/kafkaConsumer"); // This will automatically start the consumer
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -23,9 +24,45 @@ app.use(
   cors({
     origin: function (origin, callback) {
       console.log("Incoming request origin:", origin);
-      // Tarayıcıdan olmayan (null origin) veya izin verilen originler için izin ver
-      // Development modunda tüm originler için izin ver
-      if (isDevelopment || !origin || allowedOrigins.indexOf(origin) !== -1) {
+
+      // Development modunda veya origin olmadığında izin ver
+      if (isDevelopment || !origin) {
+        console.log("CORS allowed for origin (dev mode or no origin):", origin);
+        return callback(null, true);
+      }
+
+      // IP adresi kontrolü için yardımcı fonksiyon
+      const matchesWildcardIP = (pattern, origin) => {
+        try {
+          const url = new URL(origin);
+          const host = url.hostname;
+          const patternUrl = new URL(pattern);
+          const patternHost = patternUrl.hostname;
+
+          // Wildcard kontrolü
+          if (patternHost.includes("*")) {
+            const patternParts = patternHost.split(".");
+            const hostParts = host.split(".");
+
+            if (patternParts.length !== hostParts.length) return false;
+
+            return patternParts.every((part, index) => {
+              return part === "*" || part === hostParts[index];
+            });
+          }
+
+          return pattern === origin;
+        } catch {
+          return false;
+        }
+      };
+
+      // İzin verilen originleri kontrol et
+      const isAllowed = allowedOrigins.some((pattern) =>
+        matchesWildcardIP(pattern, origin)
+      );
+
+      if (isAllowed) {
         console.log("CORS allowed for origin:", origin);
         callback(null, true);
       } else {
@@ -92,7 +129,9 @@ connectDatabase();
 connectRedis();
 
 // Kafka Connection
-connectKafka().catch((err) => console.error("Kafka connection failed:", err));
+kafkaProducer
+  .connect()
+  .catch((err) => console.error("Kafka connection failed:", err));
 
 app.use((err, req, res, next) => {
   console.error(err.stack); // Hatanın detaylarını loglar
