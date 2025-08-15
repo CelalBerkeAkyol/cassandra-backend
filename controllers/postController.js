@@ -1,9 +1,4 @@
 const Post = require("../Models/PostSchema");
-const {
-  cachePost,
-  getCachedPost,
-  deleteCacheKey,
-} = require("../Helpers/redisHelper");
 
 // Yeni post ekleme
 const newPost = async (req, res) => {
@@ -53,16 +48,6 @@ const getAllPosts = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
-    const cacheKey = `posts:page:${page}:limit:${limit}`;
-
-    // Try to get from cache first
-    const cachedPosts = await getCachedPost(cacheKey);
-    if (cachedPosts) {
-      console.info(
-        `post/getAllPosts: Posts retrieved from cache for page ${page}`
-      );
-      return res.status(200).json(cachedPosts);
-    }
 
     const startIndex = (page - 1) * limit;
     const total = await Post.countDocuments();
@@ -92,9 +77,6 @@ const getAllPosts = async (req, res) => {
       },
     };
 
-    // Cache the response
-    await cachePost(cacheKey, response);
-
     console.info(`post/getAllPosts: ${allPosts.length} post getirildi.`);
     res.status(200).json(response);
   } catch (err) {
@@ -114,17 +96,6 @@ const getAllPosts = async (req, res) => {
 const postById = async (req, res) => {
   console.info("post/postById: Post getirme işlemi başladı, ID:", req.post._id);
   try {
-    const cacheKey = `post:${req.post._id}`;
-
-    // Try to get from cache first
-    const cachedPost = await getCachedPost(cacheKey);
-    if (cachedPost) {
-      console.info(
-        `post/postById: Post retrieved from cache, ID: ${req.post._id}`
-      );
-      return res.status(200).json(cachedPost);
-    }
-
     // Yazarın daha fazla bilgisini populate etme (meslek ve profil fotoğrafı dahil)
     await req.post.populate("author", "userName occupation profileImage");
 
@@ -133,9 +104,6 @@ const postById = async (req, res) => {
       message: "Post başarıyla getirildi",
       data: req.post,
     };
-
-    // Cache the response
-    await cachePost(cacheKey, response);
 
     console.info("post/postById: Post getirildi, ID:", req.post._id);
     res.status(200).json(response);
@@ -156,8 +124,6 @@ const postById = async (req, res) => {
 const deletePost = async (req, res) => {
   console.info("post/deletePost: Post silme işlemi başladı, ID:", req.post._id);
   try {
-    // Delete cache before deleting the post
-    await deleteCacheKey(`post:${req.post._id}`);
     await req.post.deleteOne();
     console.info("post/deletePost: Post başarıyla silindi, ID:", req.post._id);
 
@@ -205,8 +171,6 @@ const updatePost = async (req, res) => {
   req.post.summary = updatedData.summary || req.post.summary;
 
   try {
-    // Delete cache before updating
-    await deleteCacheKey(`post:${req.post._id}`);
     const updatedPost = await req.post.save();
 
     console.info("post/updatePost: Post güncellendi, ID:", updatedPost._id);

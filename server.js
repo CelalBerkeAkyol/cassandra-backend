@@ -4,7 +4,6 @@ const cors = require("cors");
 const connectDatabase = require("./Helpers/connectDatabase");
 const router = require("./Routers/index");
 const cookieParser = require("cookie-parser");
-const { connectRedis } = require("./Helpers/redisHelper");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -86,9 +85,6 @@ app.use("/api", router);
 
 // Database connection
 connectDatabase();
-
-// Redis Connection
-connectRedis();
 
 app.use((err, req, res, next) => {
   console.error(err.stack); // Hatanın detaylarını loglar
