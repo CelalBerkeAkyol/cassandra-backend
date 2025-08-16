@@ -48,6 +48,7 @@ const getAllPosts = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
+
     const startIndex = (page - 1) * limit;
     const total = await Post.countDocuments();
 
@@ -61,8 +62,7 @@ const getAllPosts = async (req, res) => {
     if (startIndex > 0) pagination.previous = { page: page - 1, limit };
     if (startIndex + limit < total) pagination.next = { page: page + 1, limit };
 
-    console.info(`post/getAllPosts: ${allPosts.length} post getirildi.`);
-    res.status(200).json({
+    const response = {
       success: true,
       message: "Postlar başarıyla getirildi",
       data: {
@@ -75,7 +75,10 @@ const getAllPosts = async (req, res) => {
           ...pagination,
         },
       },
-    });
+    };
+
+    console.info(`post/getAllPosts: ${allPosts.length} post getirildi.`);
+    res.status(200).json(response);
   } catch (err) {
     console.error("post/getAllPosts hata:", err);
     res.status(500).json({
@@ -95,13 +98,15 @@ const postById = async (req, res) => {
   try {
     // Yazarın daha fazla bilgisini populate etme (meslek ve profil fotoğrafı dahil)
     await req.post.populate("author", "userName occupation profileImage");
-    console.info("post/postById: Post getirildi, ID:", req.post._id);
 
-    res.status(200).json({
+    const response = {
       success: true,
       message: "Post başarıyla getirildi",
       data: req.post,
-    });
+    };
+
+    console.info("post/postById: Post getirildi, ID:", req.post._id);
+    res.status(200).json(response);
   } catch (error) {
     console.error("post/postById hata:", error);
     res.status(500).json({
