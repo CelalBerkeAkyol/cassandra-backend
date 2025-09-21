@@ -1,4 +1,12 @@
 const Image = require("../Models/ImageSchema");
+const { processAndSaveImage } = require("../Helpers/imageProcessingHelpers");
+const {
+  processJupyterFolder,
+  cleanupTempFolder,
+} = require("../Helpers/jupyterProcessingHelpers");
+const fs = require("fs");
+const path = require("path");
+const os = require("os");
 
 // Yardımcı: çalışma anında tam URL oluştur
 const makeFullUrl = (req, relativePath) =>
@@ -47,12 +55,13 @@ const uploadImages = async (req, res) => {
 
       // 2) Dinamik yol: /api/images/<id>
       image.path = `/api/images/${image._id}`;
+      image.url = makeFullUrl(req, image.path);
       await image.save();
 
       uploadedImages.push({
         _id: image._id,
         path: image.path,
-        url: makeFullUrl(req, image.path),
+        url: image.url, // Veritabanında kayıtlı URL'i kullan
         filename: image.filename,
         altText: image.altText,
         uploadedBy: image.uploadedBy,
@@ -201,13 +210,11 @@ const deleteImage = async (req, res) => {
     }
 
     await image.deleteOne();
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message: "Görsel başarıyla silindi",
-        data: image,
-      });
+    return res.status(200).json({
+      success: true,
+      message: "Görsel başarıyla silindi",
+      data: image,
+    });
   } catch (error) {
     console.error("image/deleteImage hata:", error);
     return res.status(500).json({
@@ -221,4 +228,243 @@ const deleteImage = async (req, res) => {
   }
 };
 
-module.exports = { uploadImages, getImages, deleteImage, viewImage };
+/**
+ * Tek URL'den görsel import etme
+ * POST /api/images/import-url
+ */
+const importImageFromUrl = async (req, res) => {
+  console.info(
+    "image/importImageFromUrl: URL'den görsel import işlemi başladı."
+  );
+  try {
+    const { imageUrl, altText } = req.body;
+
+    if (!imageUrl) {
+      return res.status(400).json({
+        success: false,
+        message: "Image URL gereklidir",
+        error: {
+          code: "MISSING_URL",
+          details: ["imageUrl parametresi gereklidir."],
+        },
+      });
+    }
+
+    // URL formatını kontrol et
+    if (!imageUrl.startsWith("http://") && !imageUrl.startsWith("https://")) {
+      return res.status(400).json({
+        success: false,
+        message: "Geçersiz URL formatı",
+        error: {
+          code: "INVALID_URL",
+          details: ["Sadece HTTP/HTTPS URL'leri desteklenir."],
+        },
+      });
+    }
+
+    const userId = req.user.id;
+
+    // URL'den image'ı import et
+    const importedImage = await processAndSaveImage(
+      imageUrl,
+      altText,
+      userId,
+      req
+    );
+
+    console.info(
+      `image/importImageFromUrl: Görsel başarıyla import edildi: ${imageUrl}`
+    );
+    return res.status(201).json({
+      success: true,
+      message: "Görsel başarıyla import edildi",
+      data: importedImage,
+    });
+  } catch (error) {
+    console.error("image/importImageFromUrl hata:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Görsel import edilirken hata oluştu",
+      error: {
+        code: "IMPORT_ERROR",
+        details: [error.message],
+      },
+    });
+  }
+};
+
+/**
+ * Local dosyalardan çoklu görsel yükleme
+ * POST /api/images/upload-local
+ */
+const uploadLocalImages = async (req, res) => {
+  console.info(
+    "image/uploadLocalImages: Local dosyalardan görsel yükleme işlemi başladı."
+  );
+  try {
+    if (!req.files?.length) {
+      return res.status(400).json({
+        success: false,
+        message: "Görsel dosyası bulunamadı",
+        error: {
+          code: "NO_FILES",
+          details: ["Yüklenecek görsel dosyası bulunamadı."],
+        },
+      });
+    }
+
+    const userId = req.user.id;
+    const uploadedImages = [];
+    const errors = [];
+
+    for (const file of req.files) {
+      try {
+        // Orijinal dosya adını güvenli hâle getir
+        const filename = `${Date.now()}-${file.originalname.replace(
+          /\s+/g,
+          "-"
+        )}`;
+
+        // Görsel verisini kaydet
+        const image = new Image({
+          filename,
+          altText: req.body.altText || file.originalname,
+          uploadedBy: userId,
+          data: file.buffer,
+          contentType: file.mimetype,
+          isImported: false, // Local upload olarak işaretle
+        });
+
+        // Dinamik yol: /api/images/<id>
+        image.path = `/api/images/${image._id}`;
+        image.url = makeFullUrl(req, image.path);
+        await image.save();
+
+        uploadedImages.push({
+          _id: image._id,
+          path: image.path,
+          url: image.url, // Veritabanında kayıtlı URL'i kullan
+          filename: image.filename,
+          altText: image.altText,
+          originalName: file.originalname,
+          uploadedBy: image.uploadedBy,
+          createdAt: image.createdAt,
+        });
+      } catch (error) {
+        console.error(
+          `Local image upload failed for ${file.originalname}:`,
+          error
+        );
+        errors.push({
+          filename: file.originalname,
+          error: error.message,
+        });
+      }
+    }
+
+    console.info(
+      `image/uploadLocalImages: ${uploadedImages.length} görsel başarıyla yüklendi, ${errors.length} hata.`
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: `${uploadedImages.length} görsel başarıyla yüklendi`,
+      data: {
+        uploaded: uploadedImages,
+        errors: errors,
+      },
+    });
+  } catch (error) {
+    console.error("image/uploadLocalImages hata:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Local görsel yükleme hatası",
+      error: {
+        code: "LOCAL_UPLOAD_ERROR",
+        details: [error.message],
+      },
+    });
+  }
+};
+
+/**
+ * Jupyter notebook klasör upload (multipart/form-data)
+ * POST /api/images/upload-jupyter-folder
+ */
+const uploadJupyterFolder = async (req, res) => {
+  console.info(
+    "image/uploadJupyterFolder: Jupyter klasör upload işlemi başladı."
+  );
+
+  let tempDir = null;
+
+  try {
+    if (!req.files?.length) {
+      return res.status(400).json({
+        success: false,
+        message: "Klasör dosyaları bulunamadı",
+        error: {
+          code: "NO_FOLDER_FILES",
+          details: ["Yüklenecek klasör dosyaları bulunamadı."],
+        },
+      });
+    }
+
+    const userId = req.user.id;
+
+    // Geçici dizin oluştur
+    tempDir = path.join(
+      os.tmpdir(),
+      `jupyter-folder-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    );
+    fs.mkdirSync(tempDir, { recursive: true });
+
+    // Dosyaları geçici dizine kaydet
+    for (const file of req.files) {
+      const filePath = path.join(tempDir, file.originalname);
+      fs.writeFileSync(filePath, file.buffer);
+    }
+
+    console.log(`Folder files saved to: ${tempDir}`);
+    console.log(`Files: ${req.files.map((f) => f.originalname).join(", ")}`);
+
+    // Jupyter klasörünü işle
+    const result = await processJupyterFolder(tempDir, userId, req);
+
+    console.info(
+      `image/uploadJupyterFolder: İşlem tamamlandı. ${result.successfulUploads}/${result.totalImages} görsel yüklendi.`
+    );
+
+    // Sonucu döndür
+    res.status(200).json({
+      success: true,
+      message: `Jupyter notebook işlendi. ${result.successfulUploads} görsel yüklendi.`,
+      data: result,
+    });
+  } catch (error) {
+    console.error("image/uploadJupyterFolder hata:", error);
+    res.status(500).json({
+      success: false,
+      message: "Jupyter klasör işleme hatası",
+      error: {
+        code: "JUPYTER_FOLDER_ERROR",
+        details: [error.message],
+      },
+    });
+  } finally {
+    // Temizlik
+    if (tempDir) {
+      setTimeout(() => cleanupTempFolder(tempDir), 5000);
+    }
+  }
+};
+
+module.exports = {
+  uploadImages,
+  getImages,
+  deleteImage,
+  viewImage,
+  importImageFromUrl,
+  uploadLocalImages,
+  uploadJupyterFolder,
+};

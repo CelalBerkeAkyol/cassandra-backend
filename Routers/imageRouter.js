@@ -7,6 +7,8 @@ const {
   uploadImages,
   deleteImage,
   viewImage,
+  uploadLocalImages,
+  uploadJupyterFolder,
 } = require("../controllers/imageController");
 const {
   getAccessToRoute,
@@ -33,9 +35,29 @@ router.post(
   uploadImages
 );
 
+// Local dosyalardan çoklu görsel yükleme - sadece yazarlar ve adminler
+// Body parametreleri: image (max 50 dosya), altText (opsiyonel)
+router.post(
+  "/upload-local",
+  getAccessToRoute,
+  isAuthorOrAdmin,
+  upload.array("image", 50),
+  uploadLocalImages
+);
+
 // Görsel silme - sadece yazarlar (kendi görselleri) ve adminler yapabilir
 // URL parametreleri: id (görsel ID'si)
 // Yetki kontrolü imageController içinde yapılıyor
 router.delete("/:id", getAccessToRoute, isAuthorOrAdmin, deleteImage);
+
+// Jupyter notebook klasör upload - sadece yazarlar ve adminler
+// Body parametreleri: folder files (çoklu dosya)
+router.post(
+  "/upload-jupyter-folder",
+  getAccessToRoute,
+  isAuthorOrAdmin,
+  upload.array("folderFiles", 100),
+  uploadJupyterFolder
+);
 
 module.exports = router;

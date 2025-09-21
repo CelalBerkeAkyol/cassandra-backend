@@ -1,6 +1,10 @@
 const Post = require("../Models/PostSchema");
+const { processPostImages } = require("../Helpers/imageProcessingHelpers");
+const {
+  processMarkdownProject,
+} = require("../Helpers/markdownProcessingHelpers");
 
-// Yeni post ekleme
+// Yeni post ekleme - otomatik image processing ile
 const newPost = async (req, res) => {
   console.info("post/newPost: Yeni post ekleme işlemi başladı.");
   const { title, content, summary } = req.body;
@@ -18,16 +22,65 @@ const newPost = async (req, res) => {
   }
 
   try {
+    // Image processing'i devre dışı bırakmak için query parameter kontrol et
+    const skipImageProcessing = req.query.skipImageProcessing === "true";
+
+    let processedContent = content;
+    let imageProcessingInfo = {
+      processedImages: [],
+      errors: [],
+      skipped: skipImageProcessing,
+    };
+
+    // Eğer image processing aktifse, içerikteki external image'ları işle
+    if (!skipImageProcessing) {
+      try {
+        console.info("post/newPost: External image'lar işleniyor...");
+        const imageResult = await processPostImages(content, req.user.id, req);
+
+        processedContent = imageResult.updatedContent;
+        imageProcessingInfo = {
+          processedImages: imageResult.processedImages,
+          errors: imageResult.errors,
+          skipped: false,
+        };
+
+        if (imageResult.processedImages.length > 0) {
+          console.info(
+            `post/newPost: ${imageResult.processedImages.length} image başarıyla işlendi.`
+          );
+        }
+
+        if (imageResult.errors.length > 0) {
+          console.warn(
+            `post/newPost: ${imageResult.errors.length} image işlenirken hata oluştu.`
+          );
+        }
+      } catch (imageError) {
+        console.error("post/newPost: Image processing hatası:", imageError);
+        // Image processing başarısız olsa da post'u kaydet, ama hata bilgisini döndür
+        imageProcessingInfo.errors.push({
+          general: "Image processing failed",
+          error: imageError.message,
+        });
+      }
+    }
+
+    // Post'u oluştur (işlenmiş content ile)
     const post = await Post.create({
       ...req.body,
+      content: processedContent,
       author: req.user.id,
     });
 
     console.info("post/newPost: Post oluşturuldu, ID:", post._id);
+
+    // Response'da image processing bilgilerini de döndür
     res.status(201).json({
       success: true,
       message: "Post başarıyla oluşturuldu",
       data: post,
+      imageProcessing: imageProcessingInfo,
     });
   } catch (error) {
     console.error("post/newPost hata:", error);
@@ -145,7 +198,7 @@ const deletePost = async (req, res) => {
   }
 };
 
-// Post güncelleme
+// Post güncelleme - otomatik image processing ile
 const updatePost = async (req, res) => {
   console.info(
     "post/updatePost: Post güncelleme işlemi başladı, ID:",
@@ -165,12 +218,60 @@ const updatePost = async (req, res) => {
     });
   }
 
-  req.post.title = updatedData.title || req.post.title;
-  req.post.content = updatedData.content || req.post.content;
-  req.post.category = updatedData.category || req.post.category;
-  req.post.summary = updatedData.summary || req.post.summary;
-
   try {
+    // Image processing'i devre dışı bırakmak için query parameter kontrol et
+    const skipImageProcessing = req.query.skipImageProcessing === "true";
+
+    let processedContent = updatedData.content || req.post.content;
+    let imageProcessingInfo = {
+      processedImages: [],
+      errors: [],
+      skipped: skipImageProcessing || !updatedData.content,
+    };
+
+    // Eğer content güncelleniyor ve image processing aktifse
+    if (updatedData.content && !skipImageProcessing) {
+      try {
+        console.info("post/updatePost: External image'lar işleniyor...");
+        const imageResult = await processPostImages(
+          updatedData.content,
+          req.user.id,
+          req
+        );
+
+        processedContent = imageResult.updatedContent;
+        imageProcessingInfo = {
+          processedImages: imageResult.processedImages,
+          errors: imageResult.errors,
+          skipped: false,
+        };
+
+        if (imageResult.processedImages.length > 0) {
+          console.info(
+            `post/updatePost: ${imageResult.processedImages.length} image başarıyla işlendi.`
+          );
+        }
+
+        if (imageResult.errors.length > 0) {
+          console.warn(
+            `post/updatePost: ${imageResult.errors.length} image işlenirken hata oluştu.`
+          );
+        }
+      } catch (imageError) {
+        console.error("post/updatePost: Image processing hatası:", imageError);
+        imageProcessingInfo.errors.push({
+          general: "Image processing failed",
+          error: imageError.message,
+        });
+      }
+    }
+
+    // Post'u güncelle
+    req.post.title = updatedData.title || req.post.title;
+    req.post.content = processedContent;
+    req.post.category = updatedData.category || req.post.category;
+    req.post.summary = updatedData.summary || req.post.summary;
+
     const updatedPost = await req.post.save();
 
     console.info("post/updatePost: Post güncellendi, ID:", updatedPost._id);
@@ -178,6 +279,7 @@ const updatePost = async (req, res) => {
       success: true,
       message: "Post başarıyla güncellendi",
       data: updatedPost,
+      imageProcessing: imageProcessingInfo,
     });
   } catch (error) {
     console.error("post/updatePost hata:", error);
@@ -391,6 +493,71 @@ const searchPosts = async (req, res) => {
   }
 };
 
+// Markdown projesi import etme (markdown dosyası + görseller)
+const importMarkdownProject = async (req, res) => {
+  console.info(
+    "post/importMarkdownProject: Markdown projesi import işlemi başladı."
+  );
+
+  try {
+    // Dosya kontrolü
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Hiç dosya yüklenmedi",
+        error: {
+          code: "NO_FILES",
+          details: ["Markdown dosyası ve görselleri yükleyin."],
+        },
+      });
+    }
+
+    console.info(
+      `post/importMarkdownProject: ${req.files.length} dosya işleniyor...`
+    );
+
+    // Markdown projesini işle
+    const result = await processMarkdownProject(req.files, req.user.id, req);
+
+    // Kategori kontrolü - varsayılan kategori belirle
+    const category = req.body.category || "Genel";
+
+    // Post'u oluştur
+    const post = await Post.create({
+      title: result.title,
+      content: result.content,
+      summary: result.summary,
+      category: category,
+      author: req.user.id,
+    });
+
+    console.info("post/importMarkdownProject: Post oluşturuldu, ID:", post._id);
+
+    // Detaylı response döndür
+    res.status(201).json({
+      success: true,
+      message: "Markdown projesi başarıyla import edildi",
+      data: post,
+      importDetails: {
+        savedImages: result.savedImages,
+        imageErrors: result.imageErrors,
+        stats: result.stats,
+        originalContent: result.originalContent,
+      },
+    });
+  } catch (error) {
+    console.error("post/importMarkdownProject hata:", error);
+    res.status(500).json({
+      success: false,
+      message: "Markdown projesi import edilirken hata oluştu",
+      error: {
+        code: "IMPORT_ERROR",
+        details: [error.message],
+      },
+    });
+  }
+};
+
 module.exports = {
   newPost,
   getAllPosts,
@@ -401,4 +568,5 @@ module.exports = {
   incPostLike,
   decPostLike,
   searchPosts,
+  importMarkdownProject,
 };
