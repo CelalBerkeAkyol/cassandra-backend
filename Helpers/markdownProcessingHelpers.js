@@ -109,33 +109,42 @@ const organizeUploadedFiles = (files) => {
  * @param {object} imageFile - Multer file object
  * @param {string} userId - Kullanıcı ID'si
  * @param {string} altText - Alt text
+ * @param {object} req - Request objesi (URL oluşturmak için)
  * @returns {Promise<object>} Kaydedilen görsel bilgisi
  */
-const saveImageToDatabase = async (imageFile, userId, altText = "") => {
+const saveImageToDatabase = async (
+  imageFile,
+  userId,
+  altText = "",
+  req = null
+) => {
   try {
+    // Mevcut Image upload sistemi ile aynı yapıda kaydet
     const image = new Image({
-      filename: imageFile.originalname,
+      filename: `${Date.now()}-${imageFile.originalname}`,
       altText: altText || `Imported: ${imageFile.originalname}`,
       uploadedBy: userId,
       data: imageFile.buffer,
       contentType: imageFile.mimetype,
       isImported: true,
-      url: "temp", // Geçici URL, save'den sonra güncellenir
-      path: "temp", // Geçici path, save'den sonra güncellenir
     });
 
-    // Önce kaydet ki ID oluşsun
-    await image.save();
-
-    // Şimdi doğru path ve URL'i set et
+    // Path'i ayarla - mevcut sistem gibi
     image.path = `/api/images/${image._id}`;
-    image.url = image.path; // URL ve path aynı olabilir
+
+    // URL'i tam olarak oluştur - req varsa full URL, yoksa relative
+    if (req) {
+      image.url = `${req.protocol}://${req.get("host")}${image.path}`;
+    } else {
+      image.url = image.path; // Fallback olarak relative path
+    }
+
     await image.save();
 
     return {
       _id: image._id,
       path: image.path,
-      url: image.url,
+      url: image.url, // Relative URL
       filename: image.filename,
       altText: image.altText,
       originalFilename: imageFile.originalname,
@@ -174,9 +183,8 @@ const updateMarkdownImageReferences = (
     );
 
     if (savedImage) {
-      const newImageUrl = `${req.protocol}://${req.get("host")}${
-        savedImage.path || savedImage.url
-      }`;
+      // Tam URL kullan - böylece uzak sunucuda da çalışır
+      const newImageUrl = savedImage.url;
       const newMarkdown = `![${imageRef.altText}](${newImageUrl})`;
 
       updatedContent = updatedContent.replace(
@@ -236,7 +244,8 @@ const processMarkdownProject = async (files, userId, req) => {
         const savedImage = await saveImageToDatabase(
           imageFile,
           userId,
-          altText
+          altText,
+          req
         );
         savedImages.push({
           ...savedImage,

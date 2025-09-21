@@ -140,12 +140,13 @@ const processAndSaveImage = async (imageUrl, altText, userId, req) => {
 
     // Path'i ayarla
     image.path = `/api/images/${image._id}`;
+    image.url = `${req.protocol}://${req.get("host")}${image.path}`;
     await image.save();
 
     return {
       _id: image._id,
       path: image.path,
-      url: `${req.protocol}://${req.get("host")}${image.path}`,
+      url: image.url,
       filename: image.filename,
       altText: image.altText,
       originalUrl: imageUrl,
@@ -226,7 +227,7 @@ const processPostImages = async (markdownContent, userId, req) => {
           req
         );
 
-        // Markdown'daki URL'yi güncelle
+        // Markdown'daki URL'yi güncelle - tam URL kullan
         const newMarkdown = `![${imageData.altText}](${savedImage.url})`;
         updatedContent = updatedContent.replace(
           imageData.originalMatch,

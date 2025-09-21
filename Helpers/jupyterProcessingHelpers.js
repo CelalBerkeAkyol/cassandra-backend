@@ -1,8 +1,6 @@
 const fs = require("fs");
 const path = require("path");
 const multer = require("multer");
-const archiver = require("archiver");
-const extract = require("extract-zip");
 const Image = require("../Models/ImageSchema");
 
 /**
@@ -170,20 +168,6 @@ const getMimeTypeFromExtension = (filename) => {
 };
 
 /**
- * ZIP dosyasını extract eder
- */
-const extractZipFile = async (zipPath, extractPath) => {
-  try {
-    await extract(zipPath, { dir: extractPath });
-    console.log(`Extracted ZIP to: ${extractPath}`);
-    return extractPath;
-  } catch (error) {
-    console.error("ZIP extraction failed:", error);
-    throw error;
-  }
-};
-
-/**
  * Geçici klasörü temizler
  */
 const cleanupTempFolder = (folderPath) => {
@@ -202,6 +186,5 @@ module.exports = {
   extractMarkdownImages,
   updateMarkdownImageReference,
   getMimeTypeFromExtension,
-  extractZipFile,
   cleanupTempFolder,
 };

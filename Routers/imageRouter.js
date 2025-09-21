@@ -8,7 +8,6 @@ const {
   deleteImage,
   viewImage,
   uploadLocalImages,
-  uploadJupyterZip,
   uploadJupyterFolder,
 } = require("../controllers/imageController");
 const {
@@ -50,16 +49,6 @@ router.post(
 // URL parametreleri: id (görsel ID'si)
 // Yetki kontrolü imageController içinde yapılıyor
 router.delete("/:id", getAccessToRoute, isAuthorOrAdmin, deleteImage);
-
-// Jupyter notebook ZIP dosyası upload - sadece yazarlar ve adminler
-// Body parametreleri: zip dosyası (tek dosya)
-router.post(
-  "/upload-jupyter-zip",
-  getAccessToRoute,
-  isAuthorOrAdmin,
-  upload.single("zipFile"),
-  uploadJupyterZip
-);
 
 // Jupyter notebook klasör upload - sadece yazarlar ve adminler
 // Body parametreleri: folder files (çoklu dosya)
