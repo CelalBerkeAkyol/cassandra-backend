@@ -8,6 +8,7 @@ const {
   isAuthorOrAdmin,
   isOwnerOrAdmin,
 } = require("../middlewares/authMiddleware");
+const markdownUpload = require("../middlewares/markdownUpload");
 const {
   newPost,
   getAllPosts,
@@ -18,6 +19,7 @@ const {
   incPostLike,
   decPostLike,
   searchPosts,
+  importMarkdownProject,
 } = require("../controllers/postController");
 
 const { checkPostId } = require("../middlewares/databaseMiddleware");
@@ -45,6 +47,15 @@ router.post(
   isAuthorOrAdmin,
   sanitizePostContent,
   newPost
+);
+
+// Markdown projesi import etme - yazarlar ve adminler yapabilir
+router.post(
+  "/import-markdown",
+  getAccessToRoute,
+  isAuthorOrAdmin,
+  markdownUpload.array("files"),
+  importMarkdownProject
 );
 
 // Post güncelleme ve silme - sadece içerik sahibi veya admin yapabilir

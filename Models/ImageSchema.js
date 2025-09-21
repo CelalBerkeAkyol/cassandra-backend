@@ -25,6 +25,16 @@ const imageSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+    // Otomatik import için orijinal URL
+    originalUrl: {
+      type: String,
+      default: null, // Manuel upload edilen görseller için null
+    },
+    // Import edilip edilmediğini belirtir
+    isImported: {
+      type: Boolean,
+      default: false,
+    },
     // Blog yazısı ile ilişki kaldırıldı.
   },
   { timestamps: true }
