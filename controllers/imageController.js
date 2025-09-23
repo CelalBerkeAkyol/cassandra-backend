@@ -9,8 +9,17 @@ const path = require("path");
 const os = require("os");
 
 // Yardımcı: çalışma anında tam URL oluştur
-const makeFullUrl = (req, relativePath) =>
-  `${req.protocol}://${req.get("host")}${relativePath}`;
+const makeFullUrl = (req, relativePath) => {
+  const isProduction = process.env.NODE_ENV === "production";
+
+  // In production, always use the absolute URL with the domain
+  if (isProduction) {
+    return `http://api.cassandra.com.tr${relativePath}`;
+  }
+
+  // In development, use the request's origin
+  return `${req.protocol}://${req.get("host")}${relativePath}`;
+};
 
 /**
  * Çoklu görsel yükleme

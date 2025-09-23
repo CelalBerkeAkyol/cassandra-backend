@@ -70,7 +70,11 @@ const processJupyterFolder = async (folderPath, userId, req) => {
         image.path = `/api/images/${image._id}`;
         await image.save();
 
-        const newImageUrl = `${req.protocol}://${req.get("host")}${image.path}`;
+        // Use absolute URL based on environment
+        const isProduction = process.env.NODE_ENV === "production";
+        const newImageUrl = isProduction
+          ? `http://api.cassandra.com.tr${image.path}`
+          : `${req.protocol}://${req.get("host")}${image.path}`;
 
         // Markdown'da bu dosyanın referansını güncelle
         updatedMarkdown = updateMarkdownImageReference(
