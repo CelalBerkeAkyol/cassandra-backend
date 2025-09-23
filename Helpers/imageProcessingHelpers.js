@@ -140,7 +140,15 @@ const processAndSaveImage = async (imageUrl, altText, userId, req) => {
 
     // Path'i ayarla
     image.path = `/api/images/${image._id}`;
-    image.url = `${req.protocol}://${req.get("host")}${image.path}`;
+
+    // Use absolute URL based on environment
+    const isProduction = process.env.NODE_ENV === "production";
+    if (isProduction) {
+      image.url = `http://api.cassandra.com.tr${image.path}`;
+    } else {
+      image.url = `${req.protocol}://${req.get("host")}${image.path}`;
+    }
+
     await image.save();
 
     return {
@@ -228,6 +236,7 @@ const processPostImages = async (markdownContent, userId, req) => {
         );
 
         // Markdown'daki URL'yi güncelle - tam URL kullan
+        // Ensure we're using the absolute URL with domain (savedImage.url already has the full URL)
         const newMarkdown = `![${imageData.altText}](${savedImage.url})`;
         updatedContent = updatedContent.replace(
           imageData.originalMatch,

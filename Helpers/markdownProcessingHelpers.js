@@ -134,7 +134,11 @@ const saveImageToDatabase = async (
 
     // URL'i tam olarak oluştur - req varsa full URL, yoksa relative
     if (req) {
-      image.url = `${req.protocol}://${req.get("host")}${image.path}`;
+      // Use absolute URL based on environment
+      const isProduction = process.env.NODE_ENV === "production";
+      image.url = isProduction
+        ? `http://api.cassandra.com.tr${image.path}`
+        : `${req.protocol}://${req.get("host")}${image.path}`;
     } else {
       image.url = image.path; // Fallback olarak relative path
     }
