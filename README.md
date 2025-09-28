@@ -1,158 +1,113 @@
-# **Data Science & ML Blog Backend**
+# Data Science Blog - Backend API 🚀
 
-## **📌 Project Description**
+This repository contains the backend API for the **Data Science Blog**, a platform designed for data scientists and researchers to showcase their Python notebook projects.
 
-This project is a **blog backend API** designed to manage content related to **Data Science** and **Machine Learning**. Utilizing **RESTful API** architecture, it allows users to manage blog content, categorize posts, and leave comments.
-
-> **Note:** This project consists of **two repo**:
->
-> - **Frontend**: [Data Science & ML Blog Frontend](https://github.com/CelalBerkeAkyol/Finance-blog-frontend)
-> - **Backend** (this repository): Provides API services.
+The API provides robust endpoints for user authentication, post management, and media handling. It's built to be secure, scalable, and easy to integrate with a frontend application, allowing users to effortlessly convert Jupyter Notebooks (`.ipynb`) into polished, web-friendly articles.
 
 ---
 
-## **🚀 Features**
+## ✨ Features
 
-- ✅ Blog content management via **RESTful API**
-- ✅ Secure authentication using **JWT Authentication**
-- ✅ **RBAC (Role-Based Access Control)** for authorization
-- ✅ Management of **categories, blogs, and users**
-- ✅ **Markdown support** for content formatting
-- ✅ Media management with **image upload API**
-- ✅ Robust API architecture with **Unit & Integration Tests**
+#### 🔑 User Authentication & Management
 
----
+- **Registration & Login:** Secure sign-up, login, and logout using JWT.
+- **Password Reset:** Email-based password reset functionality.
+- **Protected Routes:** Middleware to secure user-specific endpoints.
+- **Profile Management:** Users can create, edit, and delete their own accounts.
+- **Admin Controls:** Role-based access control to manage and delete users.
 
-## **🛠 Technologies Used**
+#### 📝 Post & Content Management
 
-- **Backend:** Node.js, Express.js
-- **Database:** MongoDB, Mongoose
-- **Authentication:** JWT, Bcrypt
-- **Security:** Sanitize-HTML, Cookie-Parser
-- **Environment Management:** Dotenv
-- **Routing & Middleware:** CORS, Slugify
+- **CRUD Operations:** Full create, read, update, and delete functionality for posts.
+- **Jupyter Notebook Importer:** Seamlessly upload `.ipynb` files, which are automatically converted into formatted blog posts with images.
+- **Engagement:** Like, dislike, and share posts.
+- **Discovery:** Search, filter by category, and view the latest posts.
+- **Frontend Support:** Designed to support modern frontend features like loading skeletons.
 
----
+#### 🖼️ Media Management
 
-## **📌 API Endpoints**
-
-### **🔹 User Operations**
-
-- **`/user`** → User operations (profile view, update, delete)
-- **`/auth`** → Authentication operations (register, login, logout, refresh token)
-
-### **🔹 Blog Management**
-
-- **`/posts`** → Blog post operations (create, update, delete, list)
-- **`/category`** → Blog categories (list all, get posts by category)
-
-### **🔹 Media Management**
-
-- **`/images`** → Image upload and management
+- **Image Uploads:** Direct image uploads with processing via `multer` and `sharp`.
+- **Image Library:** A personal gallery for users to view, select, and delete their uploaded images.
 
 ---
 
-## **📂 Folder Structure**
+## 🛠️ Tech Stack
 
-```
-📂 src
-
- ┣ 📂 controllers     # API endpoint controllers
- ┣ 📂 helpers         # Utility functions
- ┣ 📂 middlewares     # Authentication and error handling
- ┣ 📂 models          # MongoDB schemas
- ┣ 📂 routers         # API routing files
- ┣ 📂 docs            # Documentation files
- ┣ 📜 .env            # Environment Variables
- ┗ 📜 server.js       # Main server file
-```
+- **Framework:** Node.js, Express.js
+- **Database:** MongoDB with Mongoose for object data modeling.
+- **Authentication & Security:** JSON Web Tokens (JWT), bcrypt for hashing, `sanitize-html` for input cleaning.
+- **File Handling:** Multer for file uploads, Sharp for image processing.
+- **Email:** Nodemailer for sending transactional emails.
+- **Core Dependencies:** `cors`, `cookie-parser`, `dotenv`, `slugify`.
 
 ---
 
-## **🚀 Setup & Run**
+## 🚀 Getting Started
 
-### **1️⃣ Requirements**
+Follow these steps to set up and run the project on your local machine.
 
-- Node.js **14+**
-- MongoDB **4.x** (Cloud)
+### Prerequisites
 
-### **2️⃣ Clone the Project**
+- Node.js (v14 or higher)
+- MongoDB instance (local or cloud-based)
 
-```bash
-git clone https://github.com/CelalBerkeAkyol/Finance-blog-backend
-cd finance-blog-backend
-```
+### Installation
 
-### **3️⃣ Install Dependencies**
+1.  **Clone the repository:**
+    _(Note: I've used a placeholder for your repository URL.)_
 
-```bash
-npm install
-```
+    ```bash
+    git clone https://github.com/CelalBerkeAkyol/cassandra-backend
+    cd your-repo-name
+    ```
 
-### **4️⃣ Configure Environment Variables**
+2.  **Install dependencies:**
 
-Create a `.env` file and configure it as follows:
+    ```bash
+    npm install
+    ```
 
-```
-MONGOOSE_URL=mongodb://localhost:27017/ds_ml_blog
-JWT_SECRET=supersecuresecret
-REFRESH_TOKEN_SECRET=supersecuresecret
-```
+3.  **Set up environment variables:**
+    Create a `.env` file in the root directory and add the following variables.
 
-### **5️⃣ Initialize Database**
+    ```env
+    # Server Configuration
+    NODE_ENV=development
+    PORT=3000
+    ALLOWED_ORIGINS=http://localhost:5173 # Your frontend URL
+    FRONTEND_URL=http://localhost:5173
 
-```bash
-npm run seed
-```
+    # Database
+    MONGOOSE_URL=your_mongodb_connection_string
 
-### **6️⃣ Start Server**
+    # JWT Secrets
+    JWT_SECRET=your_strong_jwt_secret
+    REFRESH_TOKEN_SECRET=your_strong_refresh_token_secret
 
-```bash
-npm run dev
-```
+    # Email Service (Optional - for password resets)
+    GOOGLE_MAIL=your_gmail_address
+    GOOGLE_PASS=your_gmail_app_password
+    ```
 
----
+4.  **Initialize the database with seed data:**
 
-## **📌 API Documentation**
+    ```bash
+    npm run seed
+    ```
 
-You can view all endpoints via the Swagger interface:
+5.  **Run the development server:**
+    The server will automatically restart on file changes thanks to `nodemon`.
 
-📌 **DOCS:** [`summary.md`](./docs/summary.md) [`detailed api.md`](./docs/detailed_api.md)
+    ```bash
+    npm run dev
+    ```
 
----
-
-## **📌 Contributing**
-
-If you would like to contribute to the project, please follow these steps:
-
-1. **Fork** the repository and clone it.
-2. Create a new **branch**:
-   ```bash
-   git checkout -b feature/new-feature
-   ```
-3. Make your changes and commit:
-   ```bash
-   git commit -m "Added new feature"
-   ```
-4. Open a **Pull Request** 🚀
-
----
-
-## **📜 License**
-
-This project is distributed under the **Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)** license. This license prohibits **commercial use** and **derivative works**. For more information, see the [LICENSE](LICENSE) file.
-
----
-
-## **📩 Contact**
-
-📧 **Email:** [celalberke@cassandra.com.tr](mailto:celalberke@cassandra.com.tr)  
-🚀 **Developer:** [GitHub](https://github.com/CelalBerkeAkyol)
-
----
+    The API will now be running at `http://localhost:3000` (or the port you specified).
 
 ### **🔗 Additional Links**
 
-- 📌 **[Frontend Repo](https://github.com/CelalBerkeAkyol/Finance-blog-frontend)**
+- 📌 **[Frontend Repo](https://github.com/CelalBerkeAkyol/cassandra-frontend)**
 
 ---
+
+Feel free to reach out for any feedback or suggestions! 🚀
